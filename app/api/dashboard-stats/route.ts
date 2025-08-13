@@ -4,7 +4,7 @@ import { authOptions } from '../../../lib/auth';
 import connectDB from '../../../lib/mongodb';
 import Server from '../../../models/Server';
 import User from '../../../models/User';
-import ActiveList from '../../../models/ActiveList';
+import MonthlyActiveList from '../../../models/MonthlyActiveList';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
 
     const isAdmin = session.user.role === 'admin';
     const userId = session.user.id;
+    const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
 
     let serverQuery = {};
     if (!isAdmin) {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     // Estatísticas de servidores
     const totalServers = await Server.countDocuments(serverQuery);
-    const activeServers = await Server.countDocuments({ ...serverQuery, ativo: true });
+    const activeServers = await Server.countDocuments({ ...serverQuery, status: 'ativo' });
     const inactiveServers = totalServers - activeServers;
 
     // Estatísticas de usuários (apenas para admin)
@@ -36,11 +37,8 @@ export async function GET(req: NextRequest) {
       activeUsers = await User.countDocuments({ tipo: 'dono', ativo: true });
     }
 
-    // Listas ativas (últimas 24h)
-    let activeListsQuery = { 
-      isActive: true,
-      lastAccess: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-    };
+    // Listas ativas no mês atual
+    let activeListsQuery = { mesReferencia: mesAtual, ativo: true };
 
     if (!isAdmin) {
       const userServers = await Server.find({ donoId: userId }).select('codigo');
@@ -51,7 +49,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    const activeLists = await ActiveList.countDocuments(activeListsQuery);
+    const activeLists = await MonthlyActiveList.countDocuments(activeListsQuery);
 
     // Crescimento mensal (servidores criados no último mês)
     const lastMonth = new Date();

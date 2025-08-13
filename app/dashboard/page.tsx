@@ -120,14 +120,14 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Listas Ativas
+                Listas Ativas (Mês)
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{loading ? '...' : stats.activeLists}</div>
               <p className="text-xs text-muted-foreground">
-                Últimas 24 horas
+                Mês atual
               </p>
             </CardContent>
           </Card>
@@ -150,117 +150,75 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Recent Activity & Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Atividade Recente</CardTitle>
-              <CardDescription>
-                Últimas atividades dos seus servidores
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">
-                      {activity.action}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-              <CardDescription>
-                Acesso rápido às principais funcionalidades
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => router.push('/dashboard/servers')}
-              >
-                <Server className="h-4 w-4 mr-2" />
-                Gerenciar Servidores
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => router.push('/dashboard/settings')}
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                Configurações
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => router.push('/dashboard/stats')}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Estatísticas
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => window.open('https://docs.iptv-manager.com', '_blank')}
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                Documentação
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* System Status */}
+        {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Status do Sistema</CardTitle>
+            <CardTitle>Ações Rápidas</CardTitle>
             <CardDescription>
-              Informações sobre a saúde do sistema
+              Acesso rápido às principais funcionalidades
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium">API</p>
-                  <p className="text-sm text-gray-600">Operacional</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-start space-y-2"
+                onClick={() => router.push('/dashboard/servers')}
+              >
+                <Server className="h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Servidores</p>
+                  <p className="text-xs text-muted-foreground">
+                    Gerenciar servidores
+                  </p>
                 </div>
-              </div>
+              </Button>
               
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium">Cache Redis</p>
-                  <p className="text-sm text-gray-600">Funcionando</p>
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-start space-y-2"
+                onClick={() => router.push('/dashboard/stats')}
+              >
+                <BarChart3 className="h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Estatísticas</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ver relatórios
+                  </p>
                 </div>
-              </div>
+              </Button>
               
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium">Banco de Dados</p>
-                  <p className="text-sm text-gray-600">Conectado</p>
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-start space-y-2"
+                onClick={() => window.open('https://docs.iptv-manager.com', '_blank')}
+              >
+                <Globe className="h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Documentação</p>
+                  <p className="text-xs text-muted-foreground">
+                    Guias e tutoriais
+                  </p>
                 </div>
-              </div>
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 flex flex-col items-start space-y-2"
+                onClick={() => router.push('/dashboard/servers')}
+              >
+                <Plus className="h-5 w-5" />
+                <div className="text-left">
+                  <p className="font-medium">Novo Servidor</p>
+                  <p className="text-xs text-muted-foreground">
+                    Adicionar servidor
+                  </p>
+                </div>
+              </Button>
             </div>
           </CardContent>
         </Card>
+
       </div>
     </DashboardLayout>
   );

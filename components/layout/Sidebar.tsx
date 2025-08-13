@@ -16,7 +16,8 @@ import {
   LogOut,
   BarChart3,
   Shield,
-  Activity
+  Activity,
+  CreditCard
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -44,6 +45,11 @@ export function Sidebar({ className }: SidebarProps) {
     },
     ...(isAdmin ? [
       {
+        name: 'Planos',
+        href: '/admin/plans',
+        icon: CreditCard,
+      },
+      {
         name: 'Usuários',
         href: '/admin/users',
         icon: Users,
@@ -58,12 +64,12 @@ export function Sidebar({ className }: SidebarProps) {
         href: '/admin/stats',
         icon: BarChart3,
       },
+      {
+        name: 'Configurações',
+        href: '/admin/settings',
+        icon: Settings,
+      },
     ] : []),
-    {
-      name: 'Configurações',
-      href: isAdmin ? '/admin/settings' : '/dashboard/settings',
-      icon: Settings,
-    },
   ];
 
   const handleNavigation = (href: string) => {

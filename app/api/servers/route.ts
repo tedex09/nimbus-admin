@@ -4,6 +4,8 @@ import { authOptions } from '../../../lib/auth';
 import connectDB from '../../../lib/mongodb';
 import Server from '../../../models/Server';
 import User from '../../../models/User';
+import Plan from '../../../models/Plan';
+import { generateUniqueServerCode } from '../../../lib/utils/serverCodeGenerator';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,10 +19,15 @@ export async function GET(req: NextRequest) {
     let servers;
     if (session.user.role === 'admin') {
       // Admin pode ver todos os servidores
-      servers = await Server.find().populate('donoId', 'nome email').sort({ createdAt: -1 });
+      servers = await Server.find()
+        .populate('donoId', 'nome email')
+        .populate('planoId', 'nome limiteListasAtivas')
+        .sort({ createdAt: -1 });
     } else if (session.user.role === 'dono') {
       // Dono só pode ver seus próprios servidores
-      servers = await Server.find({ donoId: session.user.id }).sort({ createdAt: -1 });
+      servers = await Server.find({ donoId: session.user.id })
+        .populate('planoId', 'nome limiteListasAtivas')
+        .sort({ createdAt: -1 });
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -40,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { codigo, nome, dns, logoUrl, corPrimaria, donoId } = body;
+    const { nome, dns, logoUrl, corPrimaria, donoId, planoId, limiteMensal } = body;
 
     await connectDB();
 
@@ -62,24 +69,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Dono não encontrado' }, { status: 400 });
     }
 
-    // Verificar se o código já existe
-    const existingServer = await Server.findOne({ codigo: codigo.toUpperCase() });
-    if (existingServer) {
-      return NextResponse.json({ error: 'Código do servidor já existe' }, { status: 400 });
+    // Gerar código único automaticamente
+    const codigo = await generateUniqueServerCode();
+
+    // Verificar se o plano existe (se fornecido)
+    if (planoId) {
+      const plano = await Plan.findById(planoId);
+      if (!plano) {
+        return NextResponse.json({ error: 'Plano não encontrado' }, { status: 400 });
+      }
     }
 
     const server = new Server({
-      codigo: codigo.toUpperCase(),
+      codigo,
       nome,
       dns,
       logoUrl: logoUrl || '',
       corPrimaria: corPrimaria || '#3B82F6',
       donoId: finalDonoId,
-      ativo: session.user.role === 'admin', // Admin pode criar servidores já ativos
+      planoId: planoId || null,
+      limiteMensal: limiteMensal === '' ? null : limiteMensal,
+      status: session.user.role === 'admin' ? 'ativo' : 'pendente',
     });
 
     await server.save();
-    await server.populate('donoId', 'nome email');
+    await server.populate([
+      { path: 'donoId', select: 'nome email' },
+      { path: 'planoId', select: 'nome limiteListasAtivas' }
+    ]);
 
     return NextResponse.json({ server }, { status: 201 });
   } catch (error) {

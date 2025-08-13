@@ -7,7 +7,9 @@ export interface IServer extends Document {
   logoUrl: string;
   corPrimaria: string;
   donoId: ObjectId;
-  ativo: boolean;
+  planoId?: ObjectId;
+  limiteMensal?: number | null; // null = ilimitado
+  status: 'ativo' | 'pendente' | 'inativo';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,8 +20,7 @@ const ServerSchema = new Schema<IServer>({
     required: true,
     unique: true,
     trim: true,
-    uppercase: true,
-    match: [/^[A-Z0-9]{4,10}$/, 'Código deve ter entre 4 e 10 caracteres alfanuméricos'],
+    match: [/^\d{3,}$/, 'Código deve ter no mínimo 3 dígitos numéricos'],
   },
   nome: {
     type: String,
@@ -50,9 +51,20 @@ const ServerSchema = new Schema<IServer>({
     ref: 'User',
     required: true,
   },
-  ativo: {
-    type: Boolean,
-    default: false, // Servidores começam inativos até aprovação do admin
+  planoId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Plan',
+    default: null,
+  },
+  limiteMensal: {
+    type: Number,
+    default: null, // null = ilimitado
+    min: 0,
+  },
+  status: {
+    type: String,
+    enum: ['ativo', 'pendente', 'inativo'],
+    default: 'pendente',
   },
 }, {
   timestamps: true,
@@ -61,6 +73,7 @@ const ServerSchema = new Schema<IServer>({
 // Indexes
 ServerSchema.index({ codigo: 1 });
 ServerSchema.index({ donoId: 1 });
-ServerSchema.index({ ativo: 1 });
+ServerSchema.index({ status: 1 });
+ServerSchema.index({ planoId: 1 });
 
 export default mongoose.models.Server || mongoose.model<IServer>('Server', ServerSchema);

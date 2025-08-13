@@ -14,7 +14,9 @@ import {
   Trash2, 
   MoreHorizontal,
   RefreshCw,
-  UserPlus
+  UserPlus,
+  Server,
+  Eye
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,6 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { UserDialog } from '@/components/users/UserDialog';
+import { UserServersDialog } from '@/components/users/UserServersDialog';
 import { toast } from 'sonner';
 
 interface User {
@@ -39,6 +42,7 @@ interface User {
   email: string;
   tipo: string;
   ativo: boolean;
+  serverCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +54,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [serversDialogOpen, setServersDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
     if (session && session.user?.role !== 'admin') {
@@ -60,14 +66,31 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/users');
+      const [usersResponse, serversResponse] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/servers')
+      ]);
       
-      if (!response.ok) {
+      if (!usersResponse.ok) {
         throw new Error('Erro ao carregar usuários');
       }
 
-      const data = await response.json();
-      setUsers(data.users || []);
+      const usersData = await usersResponse.json();
+      const serversData = serversResponse.ok ? await serversResponse.json() : { servers: [] };
+      
+      // Contar servidores por usuário
+      const serverCounts: Record<string, number> = {};
+      serversData.servers?.forEach((server: any) => {
+        const userId = server.donoId._id || server.donoId;
+        serverCounts[userId] = (serverCounts[userId] || 0) + 1;
+      });
+      
+      const usersWithCounts = (usersData.users || []).map((user: User) => ({
+        ...user,
+        serverCount: serverCounts[user._id] || 0
+      }));
+      
+      setUsers(usersWithCounts);
     } catch (error) {
       console.error('Fetch users error:', error);
       toast.error('Erro ao carregar usuários');
@@ -87,6 +110,10 @@ export default function AdminUsersPage() {
     setDialogOpen(true);
   };
 
+  const handleViewServers = (user: User) => {
+    setSelectedUser(user);
+    setServersDialogOpen(true);
+  };
   const handleDelete = async (userId: string) => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) {
       return;
@@ -179,6 +206,7 @@ export default function AdminUsersPage() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Servidores</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Criado em</TableHead>
                     <TableHead className="w-[70px]">Ações</TableHead>
@@ -189,6 +217,22 @@ export default function AdminUsersPage() {
                     <TableRow key={user._id}>
                       <TableCell className="font-medium">{user.nome}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Server className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium">{user.serverCount || 0}</span>
+                          {(user.serverCount || 0) > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewServers(user)}
+                              className="h-6 px-2 text-xs"
+                            >
+                              Ver
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={user.ativo ? 'default' : 'secondary'}>
                           {user.ativo ? 'Ativo' : 'Inativo'}
@@ -205,6 +249,12 @@ export default function AdminUsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {(user.serverCount || 0) > 0 && (
+                              <DropdownMenuItem onClick={() => handleViewServers(user)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Servidores
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => handleEdit(user)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
@@ -227,6 +277,12 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
 
+        {/* User Servers Dialog */}
+        <UserServersDialog
+          open={serversDialogOpen}
+          onOpenChange={setServersDialogOpen}
+          user={selectedUser}
+        />
         {/* User Dialog */}
         <UserDialog
           open={dialogOpen}
