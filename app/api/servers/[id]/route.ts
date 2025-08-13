@@ -63,7 +63,7 @@ export async function PUT(
     if (dns) server.dns = dns;
     if (logoUrl !== undefined) server.logoUrl = logoUrl;
     if (corPrimaria) server.corPrimaria = corPrimaria;
-    if (session.user.role === 'admin' && ativo !== undefined) {
+    if (session.user.role === 'admin' && typeof ativo === 'boolean') {
       server.ativo = ativo;
     }
 

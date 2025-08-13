@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,19 +16,45 @@ import {
   Plus
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const [stats, setStats] = useState({
+    totalServers: 0,
+    activeServers: 0,
+    inactiveServers: 0,
+    activeLists: 0,
+    monthlyGrowth: 0,
+    newServersThisMonth: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - Replace with real data from API
-  const stats = {
-    totalServers: 3,
-    activeServers: 2,
-    totalConnections: 127,
-    monthlyGrowth: 15.2,
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/dashboard-stats');
+      
+      if (!response.ok) {
+        throw new Error('Erro ao carregar estatísticas');
+      }
+
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Fetch stats error:', error);
+      toast.error('Erro ao carregar estatísticas');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    if (session?.user) {
+      fetchStats();
+    }
+  }, [session]);
   const recentActivity = [
     { id: 1, action: 'Servidor SERV001 foi atualizado', time: '2h atrás' },
     { id: 2, action: 'Novo usuário conectado ao servidor SERV002', time: '4h atrás' },
@@ -66,9 +93,9 @@ export default function DashboardPage() {
               <Server className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalServers}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.totalServers}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.activeServers} ativos
+                {loading ? '...' : `${stats.activeServers} ativos`}
               </p>
             </CardContent>
           </Card>
@@ -82,7 +109,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {stats.activeServers}
+                {loading ? '...' : stats.activeServers}
               </div>
               <p className="text-xs text-muted-foreground">
                 Online e funcionando
@@ -93,14 +120,14 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Conexões Ativas
+                Listas Ativas
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalConnections}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.activeLists}</div>
               <p className="text-xs text-muted-foreground">
-                Usuários conectados
+                Últimas 24 horas
               </p>
             </CardContent>
           </Card>
@@ -114,10 +141,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                +{stats.monthlyGrowth}%
+                {loading ? '...' : `${stats.monthlyGrowth >= 0 ? '+' : ''}${stats.monthlyGrowth}%`}
               </div>
               <p className="text-xs text-muted-foreground">
-                Comparado ao mês anterior
+                Novos servidores este mês
               </p>
             </CardContent>
           </Card>

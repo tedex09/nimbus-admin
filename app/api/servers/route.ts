@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       logoUrl: logoUrl || '',
       corPrimaria: corPrimaria || '#3B82F6',
       donoId: finalDonoId,
+      ativo: session.user.role === 'admin', // Admin pode criar servidores já ativos
     });
 
     await server.save();

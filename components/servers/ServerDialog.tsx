@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,6 +33,7 @@ const serverSchema = z.object({
   logoUrl: z.string().url('Logo URL deve ser uma URL válida').optional().or(z.literal('')),
   corPrimaria: z.string()
     .regex(/^#[0-9A-F]{6}$/i, 'Cor deve estar no formato hexadecimal (#RRGGBB)'),
+  donoId: z.string().optional(),
 });
 
 type ServerFormData = z.infer<typeof serverSchema>;
@@ -47,16 +48,42 @@ interface ServerDialogProps {
 export function ServerDialog({ open, onOpenChange, server, onServerSaved }: ServerDialogProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
   const isEditing = !!server;
+  const isAdmin = session?.user?.role === 'admin';
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ServerFormData>({
     resolver: zodResolver(serverSchema),
   });
+
+  const donoId = watch('donoId');
+
+  const fetchUsers = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('Fetch users error:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (open && isAdmin) {
+      fetchUsers();
+    }
+  }, [open, isAdmin]);
 
   useEffect(() => {
     if (server) {
@@ -66,6 +93,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
         dns: server.dns,
         logoUrl: server.logoUrl || '',
         corPrimaria: server.corPrimaria,
+        donoId: server.donoId?._id || '',
       });
     } else {
       reset({
@@ -74,6 +102,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
         dns: '',
         logoUrl: '',
         corPrimaria: '#3B82F6',
+        donoId: '',
       });
     }
   }, [server, reset]);
@@ -82,6 +111,12 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
     setLoading(true);
 
     try {
+      // Se não for admin, não enviar donoId
+      const submitData = { ...data };
+      if (!isAdmin) {
+        delete submitData.donoId;
+      }
+
       const url = isEditing ? `/api/servers/${server._id}` : '/api/servers';
       const method = isEditing ? 'PUT' : 'POST';
 
@@ -90,7 +125,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
@@ -193,6 +228,27 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
               <p className="text-sm text-red-600">{errors.corPrimaria.message}</p>
             )}
           </div>
+
+          {isAdmin && !isEditing && (
+            <div className="space-y-2">
+              <Label htmlFor="donoId">Dono do Servidor</Label>
+              <Select value={donoId} onValueChange={(value) => setValue('donoId', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o dono do servidor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user._id} value={user._id}>
+                      {user.nome} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Deixe vazio para atribuir a você mesmo
+              </p>
+            </div>
+          )}
 
           <DialogFooter className="gap-2">
             <Button

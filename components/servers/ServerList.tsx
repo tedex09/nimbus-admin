@@ -204,8 +204,8 @@ export function ServerList() {
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Status:</span>
-                  <Badge variant={server.ativo ? 'default' : 'secondary'}>
-                    {server.ativo ? 'Ativo' : 'Inativo'}
+                  <Badge variant={server.ativo ? 'default' : 'destructive'}>
+                    {server.ativo ? 'Ativo' : 'Pendente'}
                   </Badge>
                 </div>
                 

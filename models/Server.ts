@@ -52,7 +52,7 @@ const ServerSchema = new Schema<IServer>({
   },
   ativo: {
     type: Boolean,
-    default: true,
+    default: false, // Servidores começam inativos até aprovação do admin
   },
 }, {
   timestamps: true,

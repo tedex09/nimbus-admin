@@ -1,6 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,11 +18,22 @@ import {
   Database
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export default function AdminPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const [stats, setStats] = useState({
+    totalServers: 0,
+    activeServers: 0,
+    inactiveServers: 0,
+    totalUsers: 0,
+    activeUsers: 0,
+    activeLists: 0,
+    monthlyGrowth: 0,
+    newServersThisMonth: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (session && session.user?.role !== 'admin') {
@@ -29,16 +41,30 @@ export default function AdminPage() {
     }
   }, [session, router]);
 
-  // Mock data - Replace with real data from API
-  const adminStats = {
-    totalServers: 25,
-    activeServers: 22,
-    totalUsers: 47,
-    activeUsers: 39,
-    totalConnections: 1523,
-    monthlyGrowth: 23.4,
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/dashboard-stats');
+      
+      if (!response.ok) {
+        throw new Error('Erro ao carregar estatísticas');
+      }
+
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Fetch stats error:', error);
+      toast.error('Erro ao carregar estatísticas');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    if (session?.user?.role === 'admin') {
+      fetchStats();
+    }
+  }, [session]);
   const systemHealth = [
     { service: 'API Gateway', status: 'online', uptime: '99.9%' },
     { service: 'Redis Cache', status: 'online', uptime: '99.8%' },
@@ -99,9 +125,9 @@ export default function AdminPage() {
               <Server className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{adminStats.totalServers}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.totalServers}</div>
               <p className="text-xs text-muted-foreground">
-                {adminStats.activeServers} ativos, {adminStats.totalServers - adminStats.activeServers} inativos
+                {loading ? '...' : `${stats.activeServers} ativos, ${stats.inactiveServers} inativos`}
               </p>
             </CardContent>
           </Card>
@@ -114,9 +140,9 @@ export default function AdminPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{adminStats.totalUsers}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.totalUsers}</div>
               <p className="text-xs text-muted-foreground">
-                {adminStats.activeUsers} ativos
+                {loading ? '...' : `${stats.activeUsers} ativos`}
               </p>
             </CardContent>
           </Card>
@@ -124,14 +150,14 @@ export default function AdminPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Conexões Totais
+                Listas Ativas
               </CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{adminStats.totalConnections}</div>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.activeLists}</div>
               <p className="text-xs text-muted-foreground">
-                Todas as conexões ativas
+                Últimas 24 horas
               </p>
             </CardContent>
           </Card>
@@ -145,10 +171,10 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                +{adminStats.monthlyGrowth}%
+                {loading ? '...' : `${stats.monthlyGrowth >= 0 ? '+' : ''}${stats.monthlyGrowth}%`}
               </div>
               <p className="text-xs text-muted-foreground">
-                Novos servidores e usuários
+                Novos servidores este mês
               </p>
             </CardContent>
           </Card>

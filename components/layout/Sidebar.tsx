@@ -15,7 +15,8 @@ import {
   Settings, 
   LogOut,
   BarChart3,
-  Shield
+  Shield,
+  Activity
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -46,6 +47,11 @@ export function Sidebar({ className }: SidebarProps) {
         name: 'Usuários',
         href: '/admin/users',
         icon: Users,
+      },
+      {
+        name: 'Listas Ativas',
+        href: '/admin/active-lists',
+        icon: Activity,
       },
       {
         name: 'Estatísticas',

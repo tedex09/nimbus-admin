@@ -54,6 +54,10 @@ export const config = {
     '/api/live/:path*',
     '/api/epg/:path*',
     '/api/user-info/:path*',
-    '/api/stream-url/:path*'
+    '/api/stream-url/:path*',
+    '/api/channels/:path*',
+    '/api/active-lists/:path*',
+    '/api/dashboard-stats/:path*',
+    '/api/users/:path*'
   ],
 };
