@@ -26,7 +26,8 @@ import {
   PieChart as RechartsPieChart,
   Cell,
   LineChart,
-  Line
+  Line,
+  Pie
 } from 'recharts';
 import { toast } from 'sonner';
 
