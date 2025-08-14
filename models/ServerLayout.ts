@@ -4,18 +4,22 @@ export interface IMenuSection {
   id: string;
   name: string;
   icon: string;
-  type: 'home' | 'movies' | 'series' | 'live' | 'custom';
+  type: 'tv' | 'movies' | 'series';
   enabled: boolean;
   order: number;
-  categoryId?: string; // Para seções customizadas
 }
 
 export interface ILayoutColors {
   primary: string;
   secondary: string;
-  background: string;
-  text: string;
-  accent: string;
+}
+
+export interface ILayoutSettings {
+  showSearch: boolean;
+  showExpiration: boolean;
+  showTime: boolean;
+  showLogo: boolean;
+  defaultLanguage: string;
 }
 
 export interface IServerLayout extends Document {
@@ -24,13 +28,7 @@ export interface IServerLayout extends Document {
   logoUrl: string;
   backgroundImageUrl?: string;
   menuSections: IMenuSection[];
-  customization: {
-    showCategories: boolean;
-    showSearch: boolean;
-    showFavorites: boolean;
-    gridColumns: number;
-    cardStyle: 'poster' | 'banner' | 'list';
-  };
+  settings: ILayoutSettings;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -53,7 +51,7 @@ const MenuSectionSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['home', 'movies', 'series', 'live', 'custom'],
+    enum: ['tv', 'movies', 'series'],
     required: true,
   },
   enabled: {
@@ -64,10 +62,6 @@ const MenuSectionSchema = new Schema({
     type: Number,
     required: true,
     min: 0,
-  },
-  categoryId: {
-    type: String,
-    maxlength: 50,
   },
 });
 
@@ -82,20 +76,29 @@ const LayoutColorsSchema = new Schema({
     required: true,
     match: /^#[0-9A-F]{6}$/i,
   },
-  background: {
-    type: String,
-    required: true,
-    match: /^#[0-9A-F]{6}$/i,
+});
+
+const LayoutSettingsSchema = new Schema({
+  showSearch: {
+    type: Boolean,
+    default: true,
   },
-  text: {
-    type: String,
-    required: true,
-    match: /^#[0-9A-F]{6}$/i,
+  showExpiration: {
+    type: Boolean,
+    default: true,
   },
-  accent: {
+  showTime: {
+    type: Boolean,
+    default: true,
+  },
+  showLogo: {
+    type: Boolean,
+    default: true,
+  },
+  defaultLanguage: {
     type: String,
-    required: true,
-    match: /^#[0-9A-F]{6}$/i,
+    enum: ['pt', 'en', 'es'],
+    default: 'pt',
   },
 });
 
@@ -124,35 +127,14 @@ const ServerLayoutSchema = new Schema<IServerLayout>({
     required: true,
     validate: {
       validator: function(sections: IMenuSection[]) {
-        return sections.length > 0 && sections.length <= 10;
+        return sections.length === 3;
       },
-      message: 'Deve ter entre 1 e 10 seções de menu',
+      message: 'Deve ter exatamente 3 seções de menu (TV, Filmes, Séries)',
     },
   },
-  customization: {
-    showCategories: {
-      type: Boolean,
-      default: true,
-    },
-    showSearch: {
-      type: Boolean,
-      default: true,
-    },
-    showFavorites: {
-      type: Boolean,
-      default: true,
-    },
-    gridColumns: {
-      type: Number,
-      min: 2,
-      max: 8,
-      default: 4,
-    },
-    cardStyle: {
-      type: String,
-      enum: ['poster', 'banner', 'list'],
-      default: 'poster',
-    },
+  settings: {
+    type: LayoutSettingsSchema,
+    required: true,
   },
   isActive: {
     type: Boolean,
@@ -170,10 +152,10 @@ ServerLayoutSchema.index({ isActive: 1 });
 ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, serverData: any) {
   const defaultMenuSections: IMenuSection[] = [
     {
-      id: 'home',
-      name: 'Início',
-      icon: 'home',
-      type: 'home',
+      id: 'tv',
+      name: 'TV',
+      icon: 'tv',
+      type: 'tv',
       enabled: true,
       order: 0,
     },
@@ -188,18 +170,10 @@ ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, se
     {
       id: 'series',
       name: 'Séries',
-      icon: 'tv',
+      icon: 'series',
       type: 'series',
       enabled: true,
       order: 2,
-    },
-    {
-      id: 'live',
-      name: 'TV ao Vivo',
-      icon: 'broadcast',
-      type: 'live',
-      enabled: true,
-      order: 3,
     },
   ];
 
@@ -208,18 +182,15 @@ ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, se
     colors: {
       primary: serverData.corPrimaria || '#3B82F6',
       secondary: '#6B7280',
-      background: '#111827',
-      text: '#FFFFFF',
-      accent: '#10B981',
     },
     logoUrl: serverData.logoUrl || 'https://via.placeholder.com/200x100',
     menuSections: defaultMenuSections,
-    customization: {
-      showCategories: true,
+    settings: {
       showSearch: true,
-      showFavorites: true,
-      gridColumns: 4,
-      cardStyle: 'poster',
+      showExpiration: true,
+      showTime: true,
+      showLogo: true,
+      defaultLanguage: 'pt',
     },
     isActive: true,
   });

@@ -30,11 +30,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { nome, limiteListasAtivas, tipoCobranca, valor } = body;
+    const { nome, limiteListasAtivas, tipoCobranca, valor, durabilidadeMeses } = body;
 
-    if (!nome || !tipoCobranca || valor === undefined) {
+    if (!nome || !tipoCobranca || valor === undefined || !durabilidadeMeses) {
       return NextResponse.json(
-        { error: 'Campos obrigatórios: nome, tipoCobranca, valor' },
+        { error: 'Campos obrigatórios: nome, tipoCobranca, valor, durabilidadeMeses' },
         { status: 400 }
       );
     }
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       limiteListasAtivas: limiteListasAtivas === '' ? null : limiteListasAtivas,
       tipoCobranca,
       valor,
+      durabilidadeMeses,
       ativo: true,
     });
 

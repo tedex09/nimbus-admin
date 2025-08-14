@@ -20,14 +20,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, CreditCard, Infinity, Users } from 'lucide-react';
+import { Loader2, CreditCard, Users, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 
 const serverSchema = z.object({
-  codigo: z.string()
-    .min(4, 'Código deve ter no mínimo 4 caracteres')
-    .max(10, 'Código deve ter no máximo 10 caracteres')
-    .regex(/^[A-Z0-9]+$/, 'Código deve conter apenas letras e números'),
   nome: z.string()
     .min(3, 'Nome deve ter no mínimo 3 caracteres')
     .max(100, 'Nome deve ter no máximo 100 caracteres'),
@@ -38,6 +34,7 @@ const serverSchema = z.object({
     .regex(/^#[0-9A-F]{6}$/i, 'Cor deve estar no formato hexadecimal (#RRGGBB)'),
   donoId: z.string().optional(),
   planoId: z.string().min(1, 'Plano é obrigatório'),
+  status: z.enum(['ativo', 'pendente', 'inativo', 'vencido']).optional(),
 });
 
 type ServerFormData = z.infer<typeof serverSchema>;
@@ -71,6 +68,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
 
   const donoId = watch('donoId');
   const planoId = watch('planoId');
+  const status = watch('status');
 
   const fetchUsers = async () => {
     if (!isAdmin) return;
@@ -119,23 +117,23 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
   useEffect(() => {
     if (server) {
       reset({
-        codigo: server.codigo,
         nome: server.nome,
         dns: server.dns,
         logoUrl: server.logoUrl || '',
         corPrimaria: server.corPrimaria,
         donoId: server.donoId?._id || '',
         planoId: server.planoId?._id || '',
+        status: server.status,
       });
     } else {
       reset({
-        codigo: '',
         nome: '',
         dns: '',
         logoUrl: '',
         corPrimaria: '#3B82F6',
         donoId: '',
         planoId: '',
+        status: 'pendente',
       });
     }
   }, [server, reset]);
@@ -144,10 +142,11 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
     setLoading(true);
 
     try {
-      // Se não for admin, não enviar donoId
+      // Se não for admin, não enviar donoId e status
       const submitData = { ...data };
       if (!isAdmin) {
         delete submitData.donoId;
+        delete submitData.status;
       }
 
       const url = isEditing ? `/api/servers/${server._id}` : '/api/servers';
@@ -198,66 +197,54 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {isEditing && (
               <motion.div 
-                className="space-y-2"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
+                className="p-4 bg-blue-50 rounded-lg border border-blue-200"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
               >
-                <Label htmlFor="codigo" className="text-sm font-semibold text-gray-700">
-                  Código do Servidor
-                </Label>
-                <Input
-                  id="codigo"
-                  {...register('codigo')}
-                  placeholder="SERV001"
-                  disabled={isEditing}
-                  className="uppercase h-12 border-2 focus:border-blue-500 transition-colors"
-                />
-                {errors.codigo && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-red-600"
-                  >
-                    {errors.codigo.message}
-                  </motion.p>
-                )}
+                <div className="flex items-center space-x-2 text-blue-800">
+                  <span className="font-semibold">Código:</span>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                    {server.codigo}
+                  </Badge>
+                  <span className="text-sm text-blue-600">(gerado automaticamente)</span>
+                </div>
               </motion.div>
-
-              <motion.div 
-                className="space-y-2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Label htmlFor="nome" className="text-sm font-semibold text-gray-700">
-                  Nome do Servidor
-                </Label>
-                <Input
-                  id="nome"
-                  {...register('nome')}
-                  placeholder="Meu Servidor IPTV"
-                  className="h-12 border-2 focus:border-blue-500 transition-colors"
-                />
-                {errors.nome && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-red-600"
-                  >
-                    {errors.nome.message}
-                  </motion.p>
-                )}
-              </motion.div>
-            </div>
+            )}
 
             <motion.div 
               className="space-y-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Label htmlFor="nome" className="text-sm font-semibold text-gray-700">
+                Nome do Servidor
+              </Label>
+              <Input
+                id="nome"
+                {...register('nome')}
+                placeholder="Meu Servidor IPTV"
+                className="h-12 border-2 focus:border-blue-500 transition-colors"
+              />
+              {errors.nome && (
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm text-red-600"
+                >
+                  {errors.nome.message}
+                </motion.p>
+              )}
+            </motion.div>
+
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
               <Label htmlFor="dns" className="text-sm font-semibold text-gray-700">
                 DNS/URL do Servidor
@@ -284,7 +271,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                 className="space-y-2"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.3 }}
               >
                 <Label htmlFor="logoUrl" className="text-sm font-semibold text-gray-700">
                   Logo URL (opcional)
@@ -310,7 +297,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                 className="space-y-2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.4 }}
               >
                 <Label htmlFor="corPrimaria" className="text-sm font-semibold text-gray-700">
                   Cor Primária
@@ -344,7 +331,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
               className="space-y-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.5 }}
             >
               <Label htmlFor="planoId" className="text-sm font-semibold text-gray-700">
                 Plano de Cobrança *
@@ -361,6 +348,9 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                         <span>{plan.nome}</span>
                         <Badge variant="outline" className="ml-2">
                           R$ {plan.valor.toFixed(2).replace('.', ',')}
+                        </Badge>
+                        <Badge variant="secondary" className="ml-1">
+                          {plan.durabilidadeMeses}m
                         </Badge>
                       </div>
                     </SelectItem>
@@ -392,12 +382,10 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                         <CreditCard className="h-4 w-4 mr-2" />
                         Detalhes do Plano Selecionado
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center space-x-2">
                           {selectedPlan.limiteListasAtivas === null ? (
-                            <>
-                              <span className="text-green-700 font-medium">Listas Ilimitadas</span>
-                            </>
+                            <span className="text-green-700 font-medium">Listas Ilimitadas</span>
                           ) : (
                             <>
                               <Users className="h-4 w-4 text-blue-600" />
@@ -406,6 +394,12 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                               </span>
                             </>
                           )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4 text-purple-600" />
+                          <span className="text-purple-700 font-medium">
+                            {selectedPlan.durabilidadeMeses} mês(es)
+                          </span>
                         </div>
                         <div>
                           <span className="text-gray-600">Tipo:</span>
@@ -417,7 +411,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                           <span className="text-gray-600">Valor:</span>
                           <span className="ml-2 font-bold text-green-600">
                             R$ {selectedPlan.valor.toFixed(2).replace('.', ',')}
-                            {selectedPlan.tipoCobranca === 'fixo' ? '/mês' : '/lista'}
+                            {selectedPlan.tipoCobranca === 'fixo' ? `/período` : '/lista'}
                           </span>
                         </div>
                       </div>
@@ -427,36 +421,64 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
               )}
             </AnimatePresence>
 
-            {isAdmin && !isEditing && (
-              <motion.div 
-                className="space-y-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-              >
-                <Label htmlFor="donoId" className="text-sm font-semibold text-gray-700">
-                  Dono do Servidor
-                </Label>
-                <Select value={donoId} onValueChange={(value) => setValue('donoId', value)}>
-                  <SelectTrigger className="h-12 border-2 focus:border-blue-500">
-                    <SelectValue placeholder="Selecione o dono do servidor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user._id} value={user._id}>
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4" />
-                          <span>{user.nome}</span>
-                          <span className="text-gray-500">({user.email})</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">
-                  Deixe vazio para atribuir a você mesmo
-                </p>
-              </motion.div>
+            {isAdmin && (
+              <>
+                {isEditing && (
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <Label htmlFor="status" className="text-sm font-semibold text-gray-700">
+                      Status do Servidor
+                    </Label>
+                    <Select value={status} onValueChange={(value) => setValue('status', value as any)}>
+                      <SelectTrigger className="h-12 border-2 focus:border-blue-500">
+                        <SelectValue placeholder="Selecione o status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ativo">Ativo</SelectItem>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                        <SelectItem value="inativo">Inativo</SelectItem>
+                        <SelectItem value="vencido">Vencido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+                )}
+
+                {!isEditing && (
+                  <motion.div 
+                    className="space-y-2"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 }}
+                  >
+                    <Label htmlFor="donoId" className="text-sm font-semibold text-gray-700">
+                      Dono do Servidor
+                    </Label>
+                    <Select value={donoId} onValueChange={(value) => setValue('donoId', value)}>
+                      <SelectTrigger className="h-12 border-2 focus:border-blue-500">
+                        <SelectValue placeholder="Selecione o dono do servidor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user._id} value={user._id}>
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4" />
+                              <span>{user.nome}</span>
+                              <span className="text-gray-500">({user.email})</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      Deixe vazio para atribuir a você mesmo
+                    </p>
+                  </motion.div>
+                )}
+              </>
             )}
 
             <DialogFooter className="gap-3 pt-6">

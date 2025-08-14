@@ -8,8 +8,8 @@ export async function generateUniqueServerCode(): Promise<string> {
   let exists = true;
   
   while (exists) {
-    // Gerar código com 6 dígitos
-    codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    // Gerar código com 2 ou 3 dígitos (10 a 999)
+    codigo = Math.floor(10 + Math.random() * 990).toString();
     
     // Verificar se já existe
     const existingServer = await Server.findOne({ codigo });

@@ -54,6 +54,7 @@ export async function GET(
     if (!layout) {
       layout = ServerLayout.createDefaultLayout(serverId, server);
       await layout.save();
+      console.log('Layout padrão criado para servidor:', serverId);
     }
 
     // Preparar resposta otimizada para o cliente
@@ -70,9 +71,8 @@ export async function GET(
           name: section.name,
           icon: section.icon,
           type: section.type,
-          categoryId: section.categoryId,
         })),
-      customization: layout.customization,
+      settings: layout.settings,
       version: layout.updatedAt.getTime(), // Para cache do cliente
     };
 
@@ -128,10 +128,10 @@ export async function POST(
       logoUrl,
       backgroundImageUrl,
       menuSections,
-      customization,
+      settings,
     } = body;
 
-    if (!colors || !logoUrl || !menuSections || !Array.isArray(menuSections)) {
+    if (!colors || !logoUrl || !menuSections || !Array.isArray(menuSections) || !settings) {
       return NextResponse.json(
         { error: 'Dados de layout inválidos' },
         { status: 400 }
@@ -140,21 +140,26 @@ export async function POST(
 
     // Validar cores
     const colorRegex = /^#[0-9A-F]{6}$/i;
-    if (!colorRegex.test(colors.primary) || 
-        !colorRegex.test(colors.secondary) ||
-        !colorRegex.test(colors.background) ||
-        !colorRegex.test(colors.text) ||
-        !colorRegex.test(colors.accent)) {
+    if (!colorRegex.test(colors.primary) || !colorRegex.test(colors.secondary)) {
       return NextResponse.json(
         { error: 'Cores devem estar no formato hexadecimal (#RRGGBB)' },
         { status: 400 }
       );
     }
 
-    // Validar seções do menu
-    if (menuSections.length === 0 || menuSections.length > 10) {
+    // Validar seções do menu (deve ter exatamente 3: TV, Filmes, Séries)
+    if (menuSections.length !== 3) {
       return NextResponse.json(
-        { error: 'Deve ter entre 1 e 10 seções de menu' },
+        { error: 'Deve ter exatamente 3 seções de menu (TV, Filmes, Séries)' },
+        { status: 400 }
+      );
+    }
+
+    const requiredTypes = ['tv', 'movies', 'series'];
+    const providedTypes = menuSections.map((section: any) => section.type);
+    if (!requiredTypes.every(type => providedTypes.includes(type))) {
+      return NextResponse.json(
+        { error: 'Seções obrigatórias: TV, Filmes e Séries' },
         { status: 400 }
       );
     }
@@ -168,7 +173,7 @@ export async function POST(
       layout.logoUrl = logoUrl;
       layout.backgroundImageUrl = backgroundImageUrl;
       layout.menuSections = menuSections;
-      layout.customization = { ...layout.customization, ...customization };
+      layout.settings = { ...layout.settings, ...settings };
     } else {
       // Criar novo layout
       layout = new ServerLayout({
@@ -177,19 +182,20 @@ export async function POST(
         logoUrl,
         backgroundImageUrl,
         menuSections,
-        customization: {
-          showCategories: true,
+        settings: {
           showSearch: true,
-          showFavorites: true,
-          gridColumns: 4,
-          cardStyle: 'poster',
-          ...customization,
+          showExpiration: true,
+          showTime: true,
+          showLogo: true,
+          defaultLanguage: 'pt',
+          ...settings,
         },
         isActive: true,
       });
     }
 
     await layout.save();
+    console.log('Layout salvo com sucesso para servidor:', serverId);
 
     // Limpar cache
     const redis = getRedis();
@@ -208,7 +214,7 @@ export async function POST(
         logoUrl: layout.logoUrl,
         backgroundImageUrl: layout.backgroundImageUrl,
         menuSections: layout.menuSections,
-        customization: layout.customization,
+        settings: layout.settings,
         updatedAt: layout.updatedAt,
       },
     });

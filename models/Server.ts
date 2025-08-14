@@ -8,9 +8,13 @@ export interface IServer extends Document {
   corPrimaria: string;
   donoId: ObjectId;
   planoId?: ObjectId;
-  status: 'ativo' | 'pendente' | 'inativo';
+  status: 'ativo' | 'pendente' | 'inativo' | 'vencido';
+  dataVencimento: Date;
+  dataUltimaRenovacao?: Date;
   createdAt: Date;
   updatedAt: Date;
+  isExpired(): boolean;
+  renovar(meses: number): void;
 }
 
 const ServerSchema = new Schema<IServer>({
@@ -19,7 +23,7 @@ const ServerSchema = new Schema<IServer>({
     required: true,
     unique: true,
     trim: true,
-    match: [/^\d{3,}$/, 'Código deve ter no mínimo 3 dígitos numéricos'],
+    match: [/^\d{2,3}$/, 'Código deve ter 2 ou 3 dígitos numéricos'],
   },
   nome: {
     type: String,
@@ -57,8 +61,15 @@ const ServerSchema = new Schema<IServer>({
   },
   status: {
     type: String,
-    enum: ['ativo', 'pendente', 'inativo'],
+    enum: ['ativo', 'pendente', 'inativo', 'vencido'],
     default: 'pendente',
+  },
+  dataVencimento: {
+    type: Date,
+    required: true,
+  },
+  dataUltimaRenovacao: {
+    type: Date,
   },
 }, {
   timestamps: true,
@@ -69,5 +80,29 @@ ServerSchema.index({ codigo: 1 });
 ServerSchema.index({ donoId: 1 });
 ServerSchema.index({ status: 1 });
 ServerSchema.index({ planoId: 1 });
+ServerSchema.index({ dataVencimento: 1 });
+
+// Método para verificar se está vencido
+ServerSchema.methods.isExpired = function(): boolean {
+  return new Date() > this.dataVencimento;
+};
+
+// Método para renovar servidor
+ServerSchema.methods.renovar = function(meses: number): void {
+  const novaDataVencimento = new Date(this.dataVencimento);
+  novaDataVencimento.setMonth(novaDataVencimento.getMonth() + meses);
+  
+  this.dataVencimento = novaDataVencimento;
+  this.dataUltimaRenovacao = new Date();
+  this.status = 'ativo';
+};
+
+// Middleware para verificar vencimento antes de salvar
+ServerSchema.pre('save', function(next) {
+  if (this.isExpired() && this.status === 'ativo') {
+    this.status = 'vencido';
+  }
+  next();
+});
 
 export default mongoose.models.Server || mongoose.model<IServer>('Server', ServerSchema);

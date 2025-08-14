@@ -5,6 +5,7 @@ export interface IPlan extends Document {
   limiteListasAtivas: number | null; // null = ilimitado
   tipoCobranca: 'fixo' | 'por_lista';
   valor: number;
+  durabilidadeMeses: number; // 1, 2, 3, etc.
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -31,6 +32,13 @@ const PlanSchema = new Schema<IPlan>({
     type: Number,
     required: true,
     min: 0,
+  },
+  durabilidadeMeses: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 12,
+    default: 1,
   },
   ativo: {
     type: Boolean,

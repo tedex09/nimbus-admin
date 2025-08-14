@@ -28,6 +28,9 @@ const planSchema = z.object({
   tipoCobranca: z.enum(['fixo', 'por_lista']),
   valor: z.number()
     .min(0, 'Valor deve ser maior ou igual a zero'),
+  durabilidadeMeses: z.number()
+    .min(1, 'Durabilidade deve ser no mínimo 1 mês')
+    .max(12, 'Durabilidade deve ser no máximo 12 meses'),
   ativo: z.boolean().default(true),
 });
 
@@ -57,6 +60,7 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
 
   const tipoCobranca = watch('tipoCobranca');
   const ativo = watch('ativo');
+  const durabilidadeMeses = watch('durabilidadeMeses');
 
   useEffect(() => {
     if (plan) {
@@ -65,6 +69,7 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
         limiteListasAtivas: plan.limiteListasAtivas?.toString() || '',
         tipoCobranca: plan.tipoCobranca,
         valor: plan.valor,
+        durabilidadeMeses: plan.durabilidadeMeses || 1,
         ativo: plan.ativo,
       });
     } else {
@@ -73,6 +78,7 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
         limiteListasAtivas: '',
         tipoCobranca: 'fixo',
         valor: 0,
+        durabilidadeMeses: 1,
         ativo: true,
       });
     }
@@ -142,38 +148,59 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="limiteListasAtivas">Limite de Listas Ativas</Label>
-            <Input
-              id="limiteListasAtivas"
-              type="number"
-              {...register('limiteListasAtivas')}
-              placeholder="Deixe vazio para ilimitado"
-              min="0"
-            />
-            <p className="text-xs text-gray-500">
-              Deixe vazio para permitir listas ilimitadas
-            </p>
-            {errors.limiteListasAtivas && (
-              <p className="text-sm text-red-600">{errors.limiteListasAtivas.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="tipoCobranca">Tipo de Cobrança</Label>
             <Select value={tipoCobranca} onValueChange={(value) => setValue('tipoCobranca', value as 'fixo' | 'por_lista')}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo de cobrança" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fixo">Valor Fixo por Mês</SelectItem>
+                <SelectItem value="fixo">Valor Fixo por Período</SelectItem>
                 <SelectItem value="por_lista">Valor por Lista Ativa</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="durabilidadeMeses">Durabilidade do Plano (meses)</Label>
+            <Select value={durabilidadeMeses?.toString()} onValueChange={(value) => setValue('durabilidadeMeses', parseInt(value))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a durabilidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) => (
+                  <SelectItem key={mes} value={mes.toString()}>
+                    {mes} {mes === 1 ? 'mês' : 'meses'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.durabilidadeMeses && (
+              <p className="text-sm text-red-600">{errors.durabilidadeMeses.message}</p>
+            )}
+          </div>
+
+          {tipoCobranca === 'por_lista' && (
+            <div className="space-y-2">
+              <Label htmlFor="limiteListasAtivas">Limite de Listas Ativas</Label>
+              <Input
+                id="limiteListasAtivas"
+                type="number"
+                {...register('limiteListasAtivas')}
+                placeholder="Deixe vazio para ilimitado"
+                min="0"
+              />
+              <p className="text-xs text-gray-500">
+                Deixe vazio para permitir listas ilimitadas
+              </p>
+              {errors.limiteListasAtivas && (
+                <p className="text-sm text-red-600">{errors.limiteListasAtivas.message}</p>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
             <Label htmlFor="valor">
-              Valor (R$) - {tipoCobranca === 'fixo' ? 'por mês' : 'por lista ativa'}
+              Valor (R$) - {tipoCobranca === 'fixo' ? `por ${durabilidadeMeses || 1} mês(es)` : 'por lista ativa'}
             </Label>
             <Input
               id="valor"

@@ -17,7 +17,9 @@ import {
   Users,
   CreditCard,
   Activity,
-  Palette
+  Palette,
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -28,6 +30,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ServerDialog } from './ServerDialog';
 import { LayoutEditor } from './LayoutEditor';
+import { RenovarDialog } from './RenovarDialog';
 import { toast } from 'sonner';
 
 interface Plano {
@@ -36,6 +39,7 @@ interface Plano {
   limiteListasAtivas: number | null;
   tipoCobranca: 'fixo' | 'por_lista';
   valor: number;
+  durabilidadeMeses: number;
 }
 
 interface Dono {
@@ -53,7 +57,9 @@ interface ServerData {
   corPrimaria: string;
   donoId: Dono;
   planoId?: Plano;
-  status: 'ativo' | 'pendente' | 'inativo';
+  status: 'ativo' | 'pendente' | 'inativo' | 'vencido';
+  dataVencimento: string;
+  dataUltimaRenovacao?: string;
   activeLists?: number;
   createdAt: string;
   updatedAt: string;
@@ -67,6 +73,8 @@ export function ServerList() {
   const [editingServer, setEditingServer] = useState<ServerData | null>(null);
   const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
   const [editingLayoutServer, setEditingLayoutServer] = useState<ServerData | null>(null);
+  const [renovarDialogOpen, setRenovarDialogOpen] = useState(false);
+  const [renovarServer, setRenovarServer] = useState<ServerData | null>(null);
 
   const isAdmin = session?.user?.role === 'admin';
 
@@ -119,6 +127,11 @@ export function ServerList() {
     setLayoutEditorOpen(true);
   };
 
+  const handleRenovar = (server: ServerData) => {
+    setRenovarServer(server);
+    setRenovarDialogOpen(true);
+  };
+
   const handleDelete = async (serverId: string) => {
     if (!confirm('Tem certeza que deseja excluir este servidor?')) return;
     try {
@@ -138,11 +151,18 @@ export function ServerList() {
     fetchServers();
   };
 
+  const handleRenovarSuccess = () => {
+    setRenovarDialogOpen(false);
+    setRenovarServer(null);
+    fetchServers();
+  };
+
   const getStatusColor = (status: ServerData['status']) => {
     switch (status) {
       case 'ativo': return 'bg-green-100 text-green-800 border-green-200';
       case 'pendente': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'inativo': return 'bg-red-100 text-red-800 border-red-200';
+      case 'inativo': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'vencido': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -152,6 +172,7 @@ export function ServerList() {
       case 'ativo': return 'Ativo';
       case 'pendente': return 'Pendente';
       case 'inativo': return 'Inativo';
+      case 'vencido': return 'Vencido';
       default: return 'Desconhecido';
     }
   };
@@ -159,6 +180,18 @@ export function ServerList() {
   const calculateUsagePercentage = (activeLists: number, limit: number | null) => {
     if (limit === null) return 0;
     return Math.min((activeLists / limit) * 100, 100);
+  };
+
+  const isExpired = (dataVencimento: string) => {
+    return new Date() > new Date(dataVencimento);
+  };
+
+  const getDaysUntilExpiration = (dataVencimento: string) => {
+    const now = new Date();
+    const expiration = new Date(dataVencimento);
+    const diffTime = expiration.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   if (loading) {
@@ -227,138 +260,171 @@ export function ServerList() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           <AnimatePresence>
-            {servers.map((server, index) => (
-              <motion.div
-                key={server._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                whileHover={{ y: -4 }}
-                className="group"
-              >
-                <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50 group-hover:from-blue-50 group-hover:to-purple-50">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-4">
-                        <motion.div whileHover={{ scale: 1.1, rotate: 5 }} transition={{ type: "spring", stiffness: 300 }}>
-                          <Avatar className="h-14 w-14 border-2 border-white shadow-md">
-                            <AvatarImage src={server.logoUrl} alt={server.nome} />
-                            <AvatarFallback className="text-white font-bold text-lg" style={{ backgroundColor: server.corPrimaria }}>
-                              {server.nome.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </motion.div>
-                        <div className="space-y-1">
-                          <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-900 transition-colors">
-                            {server.nome}
-                          </CardTitle>
-                          <CardDescription className="text-sm font-medium text-gray-600">
-                            Código: {server.codigo}
-                          </CardDescription>
+            {servers.map((server, index) => {
+              const daysUntilExpiration = getDaysUntilExpiration(server.dataVencimento);
+              const expired = isExpired(server.dataVencimento);
+              
+              return (
+                <motion.div
+                  key={server._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  whileHover={{ y: -4 }}
+                  className="group"
+                >
+                  <Card className={`h-full border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50 group-hover:from-blue-50 group-hover:to-purple-50 ${expired ? 'border-l-4 border-l-red-500' : ''}`}>
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-4">
+                          <motion.div whileHover={{ scale: 1.1, rotate: 5 }} transition={{ type: "spring", stiffness: 300 }}>
+                            <Avatar className="h-14 w-14 border-2 border-white shadow-md">
+                              <AvatarImage src={server.logoUrl} alt={server.nome} />
+                              <AvatarFallback className="text-white font-bold text-lg" style={{ backgroundColor: server.corPrimaria }}>
+                                {server.nome.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </motion.div>
+                          <div className="space-y-1">
+                            <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-900 transition-colors">
+                              {server.nome}
+                            </CardTitle>
+                            <CardDescription className="text-sm font-medium text-gray-600">
+                              Código: {server.codigo}
+                            </CardDescription>
+                          </div>
                         </div>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => handleEdit(server)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditLayout(server)}>
+                              <Palette className="h-4 w-4 mr-2" />
+                              Editar Layout
+                            </DropdownMenuItem>
+                            {isAdmin && (
+                              <DropdownMenuItem onClick={() => handleRenovar(server)}>
+                                <RotateCcw className="h-4 w-4 mr-2" />
+                                Renovar
+                              </DropdownMenuItem>
+                            )}
+                            {isAdmin && (
+                              <DropdownMenuItem onClick={() => handleDelete(server._id)} className="text-red-600 focus:text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-600">Status:</span>
+                        <Badge className={`${getStatusColor(server.status)} border font-medium`}>
+                          {getStatusLabel(server.status)}
+                        </Badge>
                       </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => handleEdit(server)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditLayout(server)}>
-                            <Palette className="h-4 w-4 mr-2" />
-                            Editar Layout
-                          </DropdownMenuItem>
-                          {isAdmin && (
-                            <DropdownMenuItem onClick={() => handleDelete(server._id)} className="text-red-600 focus:text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-600">Status:</span>
-                      <Badge className={`${getStatusColor(server.status)} border font-medium`}>
-                        {getStatusLabel(server.status)}
-                      </Badge>
-                    </div>
-
-                    {server.planoId && (
+                      {/* Vencimento */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-600">Plano:</span>
+                          <span className="text-sm font-medium text-gray-600">Vencimento:</span>
                           <div className="flex items-center space-x-2">
-                            <CreditCard className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-semibold text-blue-900">{server.planoId.nome}</span>
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <span className={`text-sm font-medium ${expired ? 'text-red-600' : daysUntilExpiration <= 7 ? 'text-yellow-600' : 'text-green-600'}`}>
+                              {new Date(server.dataVencimento).toLocaleDateString('pt-BR')}
+                            </span>
                           </div>
                         </div>
+                        {!expired && daysUntilExpiration <= 30 && (
+                          <div className={`text-xs p-2 rounded ${daysUntilExpiration <= 7 ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                            {daysUntilExpiration <= 0 ? 'Vencido' : `${daysUntilExpiration} dias restantes`}
+                          </div>
+                        )}
+                      </div>
 
+                      {server.planoId && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-600">Listas Ativas:</span>
+                            <span className="text-sm font-medium text-gray-600">Plano:</span>
                             <div className="flex items-center space-x-2">
-                              <Activity className="h-4 w-4 text-green-600" />
-                              <span className="text-sm font-bold text-green-700">
-                                {server.activeLists || 0}
-                                <span className="text-gray-500">/{server.planoId.limiteListasAtivas !== null ? server.planoId.limiteListasAtivas : '∞'}</span>
-                              </span>
+                              <CreditCard className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm font-semibold text-blue-900">{server.planoId.nome}</span>
                             </div>
                           </div>
 
-                          {server.planoId.limiteListasAtivas !== null && (
-                            <div className="space-y-1">
-                              <Progress value={calculateUsagePercentage(server.activeLists || 0, server.planoId.limiteListasAtivas)} className="h-2" />
-                              <div className="flex justify-between text-xs text-gray-500">
-                                <span>Uso atual</span>
-                                <span>{calculateUsagePercentage(server.activeLists || 0, server.planoId.limiteListasAtivas).toFixed(1)}%</span>
+                          {server.planoId.tipoCobranca === 'por_lista' && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-600">Listas Ativas:</span>
+                                <div className="flex items-center space-x-2">
+                                  <Activity className="h-4 w-4 text-green-600" />
+                                  <span className="text-sm font-bold text-green-700">
+                                    {server.activeLists || 0}
+                                    <span className="text-gray-500">/{server.planoId.limiteListasAtivas !== null ? server.planoId.limiteListasAtivas : '∞'}</span>
+                                  </span>
+                                </div>
                               </div>
+
+                              {server.planoId.limiteListasAtivas !== null && (
+                                <div className="space-y-1">
+                                  <Progress value={calculateUsagePercentage(server.activeLists || 0, server.planoId.limiteListasAtivas)} className="h-2" />
+                                  <div className="flex justify-between text-xs text-gray-500">
+                                    <span>Uso atual</span>
+                                    <span>{calculateUsagePercentage(server.activeLists || 0, server.planoId.limiteListasAtivas).toFixed(1)}%</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
 
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                          <span className="text-sm font-medium text-gray-700">Valor:</span>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-green-700">R$ {(server.planoId?.valor ?? 0).toFixed(2).replace('.', ',')}</div>
-                            <div className="text-xs text-gray-600">{server.planoId.tipoCobranca === 'fixo' ? 'por mês' : 'por lista ativa'}</div>
+                          <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                            <span className="text-sm font-medium text-gray-700">Valor:</span>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-green-700">R$ {(server.planoId?.valor ?? 0).toFixed(2).replace('.', ',')}</div>
+                              <div className="text-xs text-gray-600">
+                                {server.planoId.tipoCobranca === 'fixo' ? `por ${server.planoId.durabilidadeMeses} mês(es)` : 'por lista ativa'}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-600">DNS:</span>
-                      <span className="text-sm font-mono text-gray-800 truncate max-w-[10rem]">{server.dns}</span>
-                    </div>
-
-                    {isAdmin && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-600">Dono:</span>
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium text-gray-800 truncate max-w-[8rem]">{server.donoId.nome}</span>
-                        </div>
+                        <span className="text-sm font-medium text-gray-600">DNS:</span>
+                        <span className="text-sm font-mono text-gray-800 truncate max-w-[10rem]">{server.dns}</span>
                       </div>
-                    )}
 
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                      <span className="text-sm font-medium text-gray-600">Criado em:</span>
-                      <span className="text-sm text-gray-800">{new Date(server.createdAt).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                      {isAdmin && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-600">Dono:</span>
+                          <div className="flex items-center space-x-2">
+                            <Users className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm font-medium text-gray-800 truncate max-w-[8rem]">{server.donoId.nome}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                        <span className="text-sm font-medium text-gray-600">Criado em:</span>
+                        <span className="text-sm text-gray-800">{new Date(server.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       )}
@@ -378,6 +444,16 @@ export function ServerList() {
         }}
         serverId={editingLayoutServer?._id || ''}
         serverName={editingLayoutServer?.nome || ''}
+      />
+
+      <RenovarDialog
+        open={renovarDialogOpen}
+        onOpenChange={(open) => {
+          setRenovarDialogOpen(open);
+          if (!open) setRenovarServer(null);
+        }}
+        server={renovarServer}
+        onSuccess={handleRenovarSuccess}
       />
     </div>
   );

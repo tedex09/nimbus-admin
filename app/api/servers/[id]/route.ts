@@ -20,7 +20,7 @@ export async function GET(
 
     const server = await Server.findById(params.id)
       .populate('donoId', 'nome email')
-      .populate('planoId', 'nome limiteListasAtivas');
+      .populate('planoId', 'nome limiteListasAtivas tipoCobranca valor durabilidadeMeses');
     if (!server) {
       return NextResponse.json({ error: 'Servidor não encontrado' }, { status: 404 });
     }
@@ -48,7 +48,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { codigo, nome, dns, logoUrl, corPrimaria, status, donoId, planoId } = body;
+    const { nome, dns, logoUrl, corPrimaria, status, donoId, planoId } = body;
 
     await connectDB();
 
@@ -60,14 +60,6 @@ export async function PUT(
     // Verificar permissão
     if (session.user.role === 'dono' && server.donoId.toString() !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Verificar se código já existe (se alterado e for admin)
-    if (session.user.role === 'admin' && codigo && codigo !== server.codigo) {
-      const existingServer = await Server.findOne({ codigo, _id: { $ne: params.id } });
-      if (existingServer) {
-        return NextResponse.json({ error: 'Código já existe' }, { status: 400 });
-      }
     }
 
     // Verificar se o novo dono existe (se alterado e for admin)
@@ -84,7 +76,15 @@ export async function PUT(
       if (!plano) {
         return NextResponse.json({ error: 'Plano não encontrado' }, { status: 400 });
       }
+
+      // Se o plano mudou, recalcular data de vencimento
+      if (planoId !== server.planoId.toString()) {
+        const dataVencimento = new Date();
+        dataVencimento.setMonth(dataVencimento.getMonth() + plano.durabilidadeMeses);
+        server.dataVencimento = dataVencimento;
+      }
     }
+
     // Atualizar campos permitidos
     if (nome) server.nome = nome;
     if (dns) server.dns = dns;
@@ -93,7 +93,6 @@ export async function PUT(
     
     // Campos que apenas admin pode alterar
     if (session.user.role === 'admin') {
-      if (codigo) server.codigo = codigo;
       if (status) server.status = status;
       if (donoId) server.donoId = donoId;
       if (planoId) server.planoId = planoId;
@@ -107,7 +106,7 @@ export async function PUT(
     await server.save();
     await server.populate([
       { path: 'donoId', select: 'nome email' },
-      { path: 'planoId', select: 'nome limiteListasAtivas' }
+      { path: 'planoId', select: 'nome limiteListasAtivas tipoCobranca valor durabilidadeMeses' }
     ]);
 
     return NextResponse.json({ server });

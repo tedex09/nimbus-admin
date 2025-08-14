@@ -26,15 +26,11 @@ import {
   Palette, 
   Menu, 
   Settings, 
-  Plus, 
-  Trash2, 
   GripVertical,
   Eye,
-  Home,
-  Film,
   Tv,
-  Radio,
-  Star
+  Film,
+  Monitor
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,9 +38,6 @@ const layoutSchema = z.object({
   colors: z.object({
     primary: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
     secondary: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
-    background: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
-    text: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
-    accent: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
   }),
   logoUrl: z.string().url('URL inválida'),
   backgroundImageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
@@ -52,17 +45,16 @@ const layoutSchema = z.object({
     id: z.string(),
     name: z.string().min(1, 'Nome obrigatório').max(50),
     icon: z.string().min(1, 'Ícone obrigatório'),
-    type: z.enum(['home', 'movies', 'series', 'live', 'custom']),
+    type: z.enum(['tv', 'movies', 'series']),
     enabled: z.boolean(),
     order: z.number(),
-    categoryId: z.string().optional(),
-  })).min(1, 'Pelo menos uma seção é obrigatória').max(10, 'Máximo 10 seções'),
-  customization: z.object({
-    showCategories: z.boolean(),
+  })).length(3, 'Deve ter exatamente 3 seções'),
+  settings: z.object({
     showSearch: z.boolean(),
-    showFavorites: z.boolean(),
-    gridColumns: z.number().min(2).max(8),
-    cardStyle: z.enum(['poster', 'banner', 'list']),
+    showExpiration: z.boolean(),
+    showTime: z.boolean(),
+    showLogo: z.boolean(),
+    defaultLanguage: z.enum(['pt', 'en', 'es']),
   }),
 });
 
@@ -76,18 +68,15 @@ interface LayoutEditorProps {
 }
 
 const iconOptions = [
-  { value: 'home', label: 'Casa', icon: Home },
-  { value: 'movie', label: 'Filme', icon: Film },
   { value: 'tv', label: 'TV', icon: Tv },
-  { value: 'broadcast', label: 'Transmissão', icon: Radio },
-  { value: 'star', label: 'Estrela', icon: Star },
+  { value: 'movie', label: 'Filme', icon: Film },
+  { value: 'series', label: 'Séries', icon: Monitor },
 ];
 
 const defaultMenuSections = [
-  { id: 'home', name: 'Início', icon: 'home', type: 'home' as const, enabled: true, order: 0 },
+  { id: 'tv', name: 'TV', icon: 'tv', type: 'tv' as const, enabled: true, order: 0 },
   { id: 'movies', name: 'Filmes', icon: 'movie', type: 'movies' as const, enabled: true, order: 1 },
-  { id: 'series', name: 'Séries', icon: 'tv', type: 'series' as const, enabled: true, order: 2 },
-  { id: 'live', name: 'TV ao Vivo', icon: 'broadcast', type: 'live' as const, enabled: true, order: 3 },
+  { id: 'series', name: 'Séries', icon: 'series', type: 'series' as const, enabled: true, order: 2 },
 ];
 
 export function LayoutEditor({ open, onOpenChange, serverId, serverName }: LayoutEditorProps) {
@@ -108,30 +97,27 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
       colors: {
         primary: '#3B82F6',
         secondary: '#6B7280',
-        background: '#111827',
-        text: '#FFFFFF',
-        accent: '#10B981',
       },
       logoUrl: '',
       backgroundImageUrl: '',
       menuSections: defaultMenuSections,
-      customization: {
-        showCategories: true,
+      settings: {
         showSearch: true,
-        showFavorites: true,
-        gridColumns: 4,
-        cardStyle: 'poster',
+        showExpiration: true,
+        showTime: true,
+        showLogo: true,
+        defaultLanguage: 'pt',
       },
     },
   });
 
-  const { fields, append, remove, move } = useFieldArray({
+  const { fields, move } = useFieldArray({
     control,
     name: 'menuSections',
   });
 
   const colors = watch('colors');
-  const customization = watch('customization');
+  const settings = watch('settings');
 
   const fetchLayout = async () => {
     if (!serverId) return;
@@ -147,7 +133,7 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
           logoUrl: layoutData.logoUrl,
           backgroundImageUrl: layoutData.backgroundImageUrl || '',
           menuSections: layoutData.menuSections || defaultMenuSections,
-          customization: layoutData.customization,
+          settings: layoutData.settings,
         });
       }
     } catch (error) {
@@ -190,22 +176,18 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
     }
   };
 
-  const addMenuSection = () => {
-    const newSection = {
-      id: `custom_${Date.now()}`,
-      name: 'Nova Seção',
-      icon: 'star',
-      type: 'custom' as const,
-      enabled: true,
-      order: fields.length,
-      categoryId: '',
-    };
-    append(newSection);
-  };
-
   const getIconComponent = (iconName: string) => {
     const iconOption = iconOptions.find(opt => opt.value === iconName);
-    return iconOption?.icon || Star;
+    return iconOption?.icon || Tv;
+  };
+
+  const moveSection = (fromIndex: number, toIndex: number) => {
+    move(fromIndex, toIndex);
+    // Atualizar ordem
+    const sections = watch('menuSections');
+    sections.forEach((section, index) => {
+      setValue(`menuSections.${index}.order`, index);
+    });
   };
 
   return (
@@ -244,33 +226,47 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(colors).map(([key, value]) => (
-                      <div key={key} className="space-y-2">
-                        <Label className="capitalize">
-                          {key === 'primary' ? 'Primária' : 
-                           key === 'secondary' ? 'Secundária' :
-                           key === 'background' ? 'Fundo' :
-                           key === 'text' ? 'Texto' : 'Destaque'}
-                        </Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            type="color"
-                            {...register(`colors.${key as keyof typeof colors}`)}
-                            className="w-16 h-10 p-1"
-                          />
-                          <Input
-                            {...register(`colors.${key as keyof typeof colors}`)}
-                            placeholder="#000000"
-                            className="flex-1"
-                          />
-                        </div>
-                        {errors.colors?.[key as keyof typeof colors] && (
-                          <p className="text-sm text-red-600">
-                            {errors.colors[key as keyof typeof colors]?.message}
-                          </p>
-                        )}
+                    <div className="space-y-2">
+                      <Label>Cor Primária</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          type="color"
+                          {...register('colors.primary')}
+                          className="w-16 h-10 p-1"
+                        />
+                        <Input
+                          {...register('colors.primary')}
+                          placeholder="#3B82F6"
+                          className="flex-1"
+                        />
                       </div>
-                    ))}
+                      {errors.colors?.primary && (
+                        <p className="text-sm text-red-600">
+                          {errors.colors.primary.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Cor Secundária</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          type="color"
+                          {...register('colors.secondary')}
+                          className="w-16 h-10 p-1"
+                        />
+                        <Input
+                          {...register('colors.secondary')}
+                          placeholder="#6B7280"
+                          className="flex-1"
+                        />
+                      </div>
+                      {errors.colors?.secondary && (
+                        <p className="text-sm text-red-600">
+                          {errors.colors.secondary.message}
+                        </p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -286,9 +282,9 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                     <div 
                       className="p-4 rounded-lg border-2"
                       style={{ 
-                        backgroundColor: colors.background,
+                        backgroundColor: '#111827',
                         borderColor: colors.primary,
-                        color: colors.text 
+                        color: '#FFFFFF'
                       }}
                     >
                       <div 
@@ -299,11 +295,11 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                       </div>
                       <div 
                         className="inline-block px-3 py-1 rounded text-sm font-medium ml-2 mb-2"
-                        style={{ backgroundColor: colors.accent }}
+                        style={{ backgroundColor: colors.secondary }}
                       >
-                        Botão Destaque
+                        Botão Secundário
                       </div>
-                      <p style={{ color: colors.text }}>
+                      <p className="text-white">
                         Texto de exemplo com as cores selecionadas
                       </p>
                     </div>
@@ -346,17 +342,16 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
 
               <TabsContent value="menu" className="space-y-4">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+                  <CardHeader>
                     <CardTitle className="flex items-center">
                       <Menu className="h-5 w-5 mr-2" />
-                      Seções do Menu
+                      Seções do Menu (TV, Filmes, Séries)
                     </CardTitle>
-                    <Button type="button" onClick={addMenuSection} size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Adicionar Seção
-                    </Button>
                   </CardHeader>
                   <CardContent>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Você pode alterar o posicionamento e ativar/desativar as seções, mas não pode excluí-las.
+                    </p>
                     <AnimatePresence>
                       {fields.map((field, index) => {
                         const IconComponent = getIconComponent(field.icon);
@@ -368,57 +363,45 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                             exit={{ opacity: 0, y: -20 }}
                             className="flex items-center space-x-3 p-3 border rounded-lg mb-3"
                           >
-                            <GripVertical className="h-4 w-4 text-gray-400 cursor-move" />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => index > 0 && moveSection(index, index - 1)}
+                                disabled={index === 0}
+                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => index < fields.length - 1 && moveSection(index, index + 1)}
+                                disabled={index === fields.length - 1}
+                                className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+                              >
+                                ↓
+                              </button>
+                            </div>
                             
                             <div className="flex items-center space-x-2">
                               <IconComponent className="h-4 w-4" />
                               <Badge variant="outline">{field.type}</Badge>
                             </div>
 
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div className="flex-1">
                               <Input
                                 {...register(`menuSections.${index}.name`)}
                                 placeholder="Nome da seção"
                                 className="text-sm"
                               />
-                              
-                              <Select
-                                value={field.icon}
-                                onValueChange={(value) => setValue(`menuSections.${index}.icon`, value)}
-                              >
-                                <SelectTrigger className="text-sm">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {iconOptions.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                      <div className="flex items-center space-x-2">
-                                        <option.icon className="h-4 w-4" />
-                                        <span>{option.label}</span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <div className="flex items-center space-x-2">
-                                <Switch
-                                  checked={field.enabled}
-                                  onCheckedChange={(checked) => setValue(`menuSections.${index}.enabled`, checked)}
-                                />
-                                <span className="text-sm">Ativo</span>
-                              </div>
                             </div>
 
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => remove(index)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={field.enabled}
+                                onCheckedChange={(checked) => setValue(`menuSections.${index}.enabled`, checked)}
+                              />
+                              <span className="text-sm">Ativo</span>
+                            </div>
                           </motion.div>
                         );
                       })}
@@ -438,61 +421,50 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center justify-between">
-                        <Label>Mostrar Categorias</Label>
-                        <Switch
-                          checked={customization.showCategories}
-                          onCheckedChange={(checked) => setValue('customization.showCategories', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
                         <Label>Mostrar Busca</Label>
                         <Switch
-                          checked={customization.showSearch}
-                          onCheckedChange={(checked) => setValue('customization.showSearch', checked)}
+                          checked={settings.showSearch}
+                          onCheckedChange={(checked) => setValue('settings.showSearch', checked)}
                         />
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <Label>Mostrar Favoritos</Label>
+                        <Label>Mostrar Vencimento da Lista</Label>
                         <Switch
-                          checked={customization.showFavorites}
-                          onCheckedChange={(checked) => setValue('customization.showFavorites', checked)}
+                          checked={settings.showExpiration}
+                          onCheckedChange={(checked) => setValue('settings.showExpiration', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <Label>Mostrar Hora</Label>
+                        <Switch
+                          checked={settings.showTime}
+                          onCheckedChange={(checked) => setValue('settings.showTime', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <Label>Mostrar Logomarca</Label>
+                        <Switch
+                          checked={settings.showLogo}
+                          onCheckedChange={(checked) => setValue('settings.showLogo', checked)}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Colunas da Grade</Label>
+                        <Label>Idioma Padrão</Label>
                         <Select
-                          value={customization.gridColumns.toString()}
-                          onValueChange={(value) => setValue('customization.gridColumns', parseInt(value))}
+                          value={settings.defaultLanguage}
+                          onValueChange={(value) => setValue('settings.defaultLanguage', value as 'pt' | 'en' | 'es')}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {[2, 3, 4, 5, 6, 7, 8].map((num) => (
-                              <SelectItem key={num} value={num.toString()}>
-                                {num} colunas
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Estilo dos Cards</Label>
-                        <Select
-                          value={customization.cardStyle}
-                          onValueChange={(value) => setValue('customization.cardStyle', value as 'poster' | 'banner' | 'list')}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="poster">Poster</SelectItem>
-                            <SelectItem value="banner">Banner</SelectItem>
-                            <SelectItem value="list">Lista</SelectItem>
+                            <SelectItem value="pt">Português</SelectItem>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="es">Español</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
