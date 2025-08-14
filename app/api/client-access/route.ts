@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '../../../lib/mongodb';
 import MonthlyActiveList from '../../../models/MonthlyActiveList';
+import Plan from '../../../models/Plan';
 import Server from '../../../models/Server';
 import { xtreamService } from '../../../lib/xtream';
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     const server = await Server.findOne({ 
       codigo: serverCode, 
       status: 'ativo' 
-    }).populate('planoId');
+    });
     
     if (!server) {
       return NextResponse.json(
@@ -64,7 +65,8 @@ export async function POST(req: NextRequest) {
         await monthlyList.save();
       } else {
         // Verificar limite mensal antes de criar novo registro
-        const limiteMensal = server.planoId?.limiteListasAtivas;
+        const plano = server?.planoId ? await Plan.findById(server.planoId) : null;
+        const limiteMensal = plano?.unlimited ? null : plano?.limiteListasAtivas;
         
         if (limiteMensal !== null) {
           const listasAtivasNoMes = await MonthlyActiveList.countDocuments({
