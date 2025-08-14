@@ -18,7 +18,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <Sidebar />
 
         {/* Conteúdo */}
-        <div className="flex-1 lg:ml-72">
+        <div className="flex-1 lg:ml-4">
           <main className="p-4 lg:p-8 pt-20 lg:pt-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

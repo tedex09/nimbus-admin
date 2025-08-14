@@ -15,9 +15,9 @@ import {
   MoreHorizontal,
   RefreshCw,
   Users,
-  Infinity,
   CreditCard,
-  Activity
+  Activity,
+  Palette
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ServerDialog } from './ServerDialog';
+import { LayoutEditor } from './LayoutEditor';
 import { toast } from 'sonner';
 
 interface Plano {
@@ -64,6 +65,8 @@ export function ServerList() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerData | null>(null);
+  const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
+  const [editingLayoutServer, setEditingLayoutServer] = useState<ServerData | null>(null);
 
   const isAdmin = session?.user?.role === 'admin';
 
@@ -109,6 +112,11 @@ export function ServerList() {
   const handleEdit = (server: ServerData) => {
     setEditingServer(server);
     setDialogOpen(true);
+  };
+
+  const handleEditLayout = (server: ServerData) => {
+    setEditingLayoutServer(server);
+    setLayoutEditorOpen(true);
   };
 
   const handleDelete = async (serverId: string) => {
@@ -262,6 +270,10 @@ export function ServerList() {
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditLayout(server)}>
+                            <Palette className="h-4 w-4 mr-2" />
+                            Editar Layout
+                          </DropdownMenuItem>
                           {isAdmin && (
                             <DropdownMenuItem onClick={() => handleDelete(server._id)} className="text-red-600 focus:text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -298,9 +310,8 @@ export function ServerList() {
                               <Activity className="h-4 w-4 text-green-600" />
                               <span className="text-sm font-bold text-green-700">
                                 {server.activeLists || 0}
-                                {server.planoId.limiteListasAtivas !== null && <span className="text-gray-500">/{server.planoId.limiteListasAtivas}</span>}
+                                <span className="text-gray-500">/{server.planoId.limiteListasAtivas !== null ? server.planoId.limiteListasAtivas : '∞'}</span>
                               </span>
-                              {server.planoId.limiteListasAtivas === null && <Infinity className="h-4 w-4 text-green-600" />}
                             </div>
                           </div>
 
@@ -357,6 +368,16 @@ export function ServerList() {
         onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditingServer(null); }}
         server={editingServer}
         onServerSaved={handleServerSaved}
+      />
+
+      <LayoutEditor
+        open={layoutEditorOpen}
+        onOpenChange={(open) => { 
+          setLayoutEditorOpen(open); 
+          if (!open) setEditingLayoutServer(null); 
+        }}
+        serverId={editingLayoutServer?._id || ''}
+        serverName={editingLayoutServer?.nome || ''}
       />
     </div>
   );

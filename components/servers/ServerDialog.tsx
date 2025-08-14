@@ -396,7 +396,6 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                         <div className="flex items-center space-x-2">
                           {selectedPlan.limiteListasAtivas === null ? (
                             <>
-                              <Infinity className="h-4 w-4 text-green-600" />
                               <span className="text-green-700 font-medium">Listas Ilimitadas</span>
                             </>
                           ) : (

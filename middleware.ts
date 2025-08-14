@@ -58,6 +58,7 @@ export const config = {
     '/api/channels/:path*',
     '/api/active-lists/:path*',
     '/api/dashboard-stats/:path*',
-    '/api/users/:path*'
+    '/api/users/:path*',
+    '/api/layout/:path*'
   ],
 };
