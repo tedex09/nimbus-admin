@@ -16,7 +16,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { nome, limiteListasAtivas, tipoCobranca, valor, ativo } = body;
+    const { nome, unlimited, limiteListasAtivas, tipoCobranca, valor, durabilidadeMeses, ativo } = body;
 
     await connectDB();
 
@@ -28,16 +28,18 @@ export async function PUT(
     if (nome) plan.nome = nome;
     if (tipoCobranca) plan.tipoCobranca = tipoCobranca;
     if (valor !== undefined) plan.valor = valor;
-    if (limiteListasAtivas !== undefined) {
-      plan.limiteListasAtivas = limiteListasAtivas === '' ? null : limiteListasAtivas;
-    }
+    if (durabilidadeMeses !== undefined) plan.durabilidadeMeses = durabilidadeMeses;
+    if (typeof unlimited === 'boolean') plan.unlimited = unlimited;
     if (typeof ativo === 'boolean') plan.ativo = ativo;
+    
+    // Atualizar limite baseado no campo unlimited
+    if (unlimited) {
+      plan.limiteListasAtivas = 0;
+    } else if (limiteListasAtivas !== undefined) {
+      plan.limiteListasAtivas = limiteListasAtivas || 0;
+    }
 
     await plan.save();
-
-    // Atualizar todos os servidores que usam este plano
-    // Não é necessário fazer nada especial, pois os servidores já referenciam o plano
-    // e as regras são aplicadas dinamicamente através da referência
 
     return NextResponse.json({ plan });
   } catch (error) {

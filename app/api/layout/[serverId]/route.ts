@@ -140,17 +140,16 @@ export async function POST(
 
     // Validar cores
     const colorRegex = /^#[0-9A-F]{6}$/i;
-    if (!colorRegex.test(colors.primary) || !colorRegex.test(colors.secondary) || !colorRegex.test(colors.background)) {
+    if (!colorRegex.test(colors.primary) || !colorRegex.test(colors.secondary)) {
       return NextResponse.json(
-        { error: 'Cores devem estar no formato hexadecimal (#RRGGBB)' },
+        { error: 'Cores primária e secundária devem estar no formato hexadecimal (#RRGGBB)' },
         { status: 400 }
       );
     }
 
-    // Validar cores das configurações
-    if (!colorRegex.test(settings.backgroundColor) || !colorRegex.test(settings.primaryColor) || !colorRegex.test(settings.secondaryColor)) {
+    if (colors.background && !colorRegex.test(colors.background)) {
       return NextResponse.json(
-        { error: 'Cores das configurações devem estar no formato hexadecimal (#RRGGBB)' },
+        { error: 'Cor de fundo deve estar no formato hexadecimal (#RRGGBB)' },
         { status: 400 }
       );
     }
@@ -177,20 +176,42 @@ export async function POST(
 
     if (layout) {
       // Atualizar layout existente
-      layout.colors = colors;
+      layout.colors = {
+        primary: colors.primary,
+        secondary: colors.secondary,
+        background: colors.background || '#FFFFFF',
+      };
       layout.logoUrl = logoUrl;
-      layout.backgroundImageUrl = backgroundImageUrl;
+      layout.backgroundImageUrl = backgroundImageUrl || '';
       layout.menuSections = menuSections;
-      layout.settings = settings;
+      layout.settings = {
+        showSearch: settings.showSearch ?? true,
+        showExpiration: settings.showExpiration ?? true,
+        showTime: settings.showTime ?? true,
+        showLogo: settings.showLogo ?? true,
+        defaultLanguage: settings.defaultLanguage || 'pt',
+        menuPosition: settings.menuPosition || 'top',
+      };
     } else {
       // Criar novo layout
       layout = new ServerLayout({
         serverId,
-        colors,
+        colors: {
+          primary: colors.primary,
+          secondary: colors.secondary,
+          background: colors.background || '#FFFFFF',
+        },
         logoUrl,
-        backgroundImageUrl,
+        backgroundImageUrl: backgroundImageUrl || '',
         menuSections,
-        settings,
+        settings: {
+          showSearch: settings.showSearch ?? true,
+          showExpiration: settings.showExpiration ?? true,
+          showTime: settings.showTime ?? true,
+          showLogo: settings.showLogo ?? true,
+          defaultLanguage: settings.defaultLanguage || 'pt',
+          menuPosition: settings.menuPosition || 'top',
+        },
         isActive: true,
       });
     }

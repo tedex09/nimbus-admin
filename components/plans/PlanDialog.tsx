@@ -24,8 +24,8 @@ const planSchema = z.object({
   nome: z.string()
     .min(3, 'Nome deve ter no mínimo 3 caracteres')
     .max(100, 'Nome deve ter no máximo 100 caracteres'),
-  limiteListasAtivas: z.string().optional(),
   unlimited: z.boolean().default(false),
+  limiteListasAtivas: z.string().optional(),
   tipoCobranca: z.enum(['fixo', 'por_lista']),
   valor: z.number()
     .min(0, 'Valor deve ser maior ou igual a zero'),
@@ -61,15 +61,15 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
 
   const tipoCobranca = watch('tipoCobranca');
   const ativo = watch('ativo');
-  const durabilidadeMeses = watch('durabilidadeMeses');
   const unlimited = watch('unlimited');
+  const durabilidadeMeses = watch('durabilidadeMeses');
 
   useEffect(() => {
     if (plan) {
       reset({
         nome: plan.nome,
-        limiteListasAtivas: plan.limiteListasAtivas?.toString() || '',
         unlimited: plan.unlimited || false,
+        limiteListasAtivas: plan.unlimited ? '' : (plan.limiteListasAtivas?.toString() || ''),
         tipoCobranca: plan.tipoCobranca,
         valor: plan.valor,
         durabilidadeMeses: plan.durabilidadeMeses || 1,
@@ -78,8 +78,8 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
     } else {
       reset({
         nome: '',
-        limiteListasAtivas: '',
         unlimited: false,
+        limiteListasAtivas: '',
         tipoCobranca: 'fixo',
         valor: 0,
         durabilidadeMeses: 1,
@@ -94,7 +94,7 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
     try {
       const submitData = {
         ...data,
-        limiteListasAtivas: data.unlimited || data.limiteListasAtivas === '' ? null : parseInt(data.limiteListasAtivas!),
+        limiteListasAtivas: data.unlimited ? 0 : (data.limiteListasAtivas === '' ? 0 : parseInt(data.limiteListasAtivas!)),
       };
 
       const url = isEditing ? `/api/plans/${plan._id}` : '/api/plans';

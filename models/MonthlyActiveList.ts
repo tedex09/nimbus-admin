@@ -55,15 +55,11 @@ const MonthlyActiveListSchema = new Schema<IMonthlyActiveList>({
   timestamps: true,
 });
 
-// Índice único composto
+// Índice único para evitar duplicatas por mês
 MonthlyActiveListSchema.index({ 
   serverCode: 1, 
   username: 1, 
   mesReferencia: 1 
 }, { unique: true });
-
-// Índices compostos adicionais
-MonthlyActiveListSchema.index({ mesReferencia: 1, ativo: 1 });
-MonthlyActiveListSchema.index({ serverCode: 1, mesReferencia: 1, ativo: 1 });
 
 export default mongoose.models.MonthlyActiveList || mongoose.model<IMonthlyActiveList>('MonthlyActiveList', MonthlyActiveListSchema);

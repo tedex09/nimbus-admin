@@ -42,11 +42,7 @@ const layoutSchema = z.object({
     showTime: z.boolean(),
     showLogo: z.boolean(),
     defaultLanguage: z.enum(['pt', 'en', 'es']),
-    backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
-    primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
-    secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
-    backgroundImage: z.string().url('URL inválida').optional().or(z.literal('')),
-    menuPosition: z.enum(['left', 'right', 'top', 'bottom']),
+    menuPosition: z.enum(['top', 'left', 'bottom']),
   }),
 });
 
@@ -88,11 +84,7 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
         showTime: true, 
         showLogo: true, 
         defaultLanguage: 'pt',
-        backgroundColor: '#FFFFFF',
-        primaryColor: '#3B82F6',
-        secondaryColor: '#6B7280',
-        backgroundImage: '',
-        menuPosition: 'left',
+        menuPosition: 'top'
       },
     },
   });
@@ -109,7 +101,24 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
       const res = await fetch(`/api/layout/${serverId}`);
       if (res.ok) {
         const layoutData = await res.json();
-        reset(layoutData);
+        reset({
+          colors: {
+            primary: layoutData.colors?.primary || '#3B82F6',
+            secondary: layoutData.colors?.secondary || '#6B7280',
+            background: layoutData.colors?.background || '#FFFFFF',
+          },
+          logoUrl: layoutData.logoUrl || '',
+          backgroundImageUrl: layoutData.backgroundImageUrl || '',
+          menuSections: layoutData.menuSections || defaultMenuSections,
+          settings: {
+            showSearch: layoutData.settings?.showSearch ?? true,
+            showExpiration: layoutData.settings?.showExpiration ?? true,
+            showTime: layoutData.settings?.showTime ?? true,
+            showLogo: layoutData.settings?.showLogo ?? true,
+            defaultLanguage: layoutData.settings?.defaultLanguage || 'pt',
+            menuPosition: layoutData.settings?.menuPosition || 'top',
+          },
+        });
       }
     } catch (err) {
       console.error('Fetch layout error:', err);
@@ -178,24 +187,30 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                   <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label>Cor Primária</Label>
-                      <Input type="color" {...register('colors.primary')} className="w-16 h-10" />
-                      <Input {...register('colors.primary')} placeholder="#3B82F6" />
+                      <div className="flex space-x-2">
+                        <Input type="color" {...register('colors.primary')} className="w-16 h-10" />
+                        <Input {...register('colors.primary')} placeholder="#3B82F6" />
+                      </div>
                       {errors.colors?.primary && (
                         <p className="text-sm text-red-600">{errors.colors.primary.message}</p>
                       )}
                     </div>
                     <div>
                       <Label>Cor Secundária</Label>
-                      <Input type="color" {...register('colors.secondary')} className="w-16 h-10" />
-                      <Input {...register('colors.secondary')} placeholder="#6B7280" />
+                      <div className="flex space-x-2">
+                        <Input type="color" {...register('colors.secondary')} className="w-16 h-10" />
+                        <Input {...register('colors.secondary')} placeholder="#6B7280" />
+                      </div>
                       {errors.colors?.secondary && (
                         <p className="text-sm text-red-600">{errors.colors.secondary.message}</p>
                       )}
                     </div>
                     <div>
                       <Label>Cor de Fundo</Label>
-                      <Input type="color" {...register('colors.background')} className="w-16 h-10" />
-                      <Input {...register('colors.background')} placeholder="#FFFFFF" />
+                      <div className="flex space-x-2">
+                        <Input type="color" {...register('colors.background')} className="w-16 h-10" />
+                        <Input {...register('colors.background')} placeholder="#FFFFFF" />
+                      </div>
                       {errors.colors?.background && (
                         <p className="text-sm text-red-600">{errors.colors.background.message}</p>
                       )}
@@ -209,16 +224,20 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                 <Card>
                   <CardHeader><CardTitle>Identidade Visual</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
-                    <Label>URL do Logo</Label>
-                    <Input {...register('logoUrl')} placeholder="https://exemplo.com/logo.png" />
-                    {errors.logoUrl && (
-                      <p className="text-sm text-red-600">{errors.logoUrl.message}</p>
-                    )}
-                    <Label>Imagem de Fundo</Label>
-                    <Input {...register('backgroundImageUrl')} placeholder="https://exemplo.com/bg.jpg" />
-                    {errors.backgroundImageUrl && (
-                      <p className="text-sm text-red-600">{errors.backgroundImageUrl.message}</p>
-                    )}
+                    <div className="space-y-2">
+                      <Label>URL do Logo</Label>
+                      <Input {...register('logoUrl')} placeholder="https://exemplo.com/logo.png" />
+                      {errors.logoUrl && (
+                        <p className="text-sm text-red-600">{errors.logoUrl.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Imagem de Fundo (opcional)</Label>
+                      <Input {...register('backgroundImageUrl')} placeholder="https://exemplo.com/bg.jpg" />
+                      {errors.backgroundImageUrl && (
+                        <p className="text-sm text-red-600">{errors.backgroundImageUrl.message}</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -232,68 +251,81 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                       {fields.map((field, idx) => {
                         const Icon = getIconComponent(field.icon);
                         return (
-                          <motion.div 
-                            key={field.id} 
-                            initial={{ opacity: 0 }} 
-                            animate={{ opacity: 1 }} 
-                            exit={{ opacity: 0 }} 
-                            className="flex items-center gap-3 p-4 border rounded-lg"
-                          >
+                          <motion.div key={field.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3 p-3 border rounded-lg">
                             <div className="flex flex-col gap-1">
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => moveSection(idx, idx - 1)} 
-                                disabled={idx === 0}
-                              >
-                                ↑
-                              </Button>
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => moveSection(idx, idx + 1)} 
-                                disabled={idx === fields.length - 1}
-                              >
-                                ↓
-                              </Button>
+                              <button type="button" onClick={() => moveSection(idx, idx - 1)} disabled={idx === 0} className="text-xs px-2 py-1 bg-gray-100 rounded disabled:opacity-50">↑</button>
+                              <button type="button" onClick={() => moveSection(idx, idx + 1)} disabled={idx === fields.length - 1} className="text-xs px-2 py-1 bg-gray-100 rounded disabled:opacity-50">↓</button>
                             </div>
-                            <Icon className="h-4 w-4" />
-                            <div className="flex-1">
-                              <Label>Nome da Seção</Label>
-                              <Input {...register(`menuSections.${idx}.name`)} />
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Label>Ativo</Label>
-                              <Controller
-                                control={control}
-                                name={`menuSections.${idx}.enabled`}
-                                render={({ field }) => (
-                                  <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
-                                )}
-                              />
-                            </div>
+                            <Icon className="h-5 w-5" />
+                            <Input {...register(`menuSections.${idx}.name`)} className="flex-1" />
+                            <Controller
+                              control={control}
+                              name={`menuSections.${idx}.enabled`}
+                              render={({ field }) => (
+                                <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
+                              )}
+                            />
                           </motion.div>
                         );
                       })}
                     </AnimatePresence>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* CONFIGURAÇÕES */}
+              <TabsContent value="settings">
+                <Card>
+                  <CardHeader><CardTitle>Configurações</CardTitle></CardHeader>
+                  <CardContent className="grid gap-4">
+                    {[
+                      { key: 'showSearch', label: 'Exibir Busca' },
+                      { key: 'showExpiration', label: 'Exibir Data de Expiração' },
+                      { key: 'showTime', label: 'Exibir Hora' },
+                      { key: 'showLogo', label: 'Exibir Logo' }
+                    ].map(({ key, label }) => (
+                      <div key={key} className="flex justify-between items-center">
+                        <Label>{label}</Label>
+                        <Controller
+                          control={control}
+                          name={`settings.${key}` as any}
+                          render={({ field }) => (
+                            <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
+                          )}
+                        />
+                      </div>
+                    ))}
                     
-                    <div className="space-y-4 mt-6">
-                      <Label>Posição do Menu</Label>
+                    <div className="space-y-2">
+                      <Label>Posicionamento do Menu</Label>
                       <Controller
                         control={control}
                         name="settings.menuPosition"
                         render={({ field }) => (
                           <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="left">Esquerda</SelectItem>
-                              <SelectItem value="right">Direita</SelectItem>
                               <SelectItem value="top">Superior</SelectItem>
+                              <SelectItem value="left">Lateral Esquerda</SelectItem>
                               <SelectItem value="bottom">Inferior</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Idioma Padrão</Label>
+                      <Controller
+                        control={control}
+                        name="settings.defaultLanguage"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pt">Português</SelectItem>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="es">Español</SelectItem>
                             </SelectContent>
                           </Select>
                         )}
@@ -302,86 +334,14 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
                   </CardContent>
                 </Card>
               </TabsContent>
-
-              {/* CONFIGURAÇÕES */}
-              <TabsContent value="settings">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader><CardTitle>Cores Personalizadas</CardTitle></CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label>Cor de Fundo Personalizada</Label>
-                        <Input type="color" {...register('settings.backgroundColor')} className="w-16 h-10" />
-                        <Input {...register('settings.backgroundColor')} placeholder="#FFFFFF" />
-                      </div>
-                      <div>
-                        <Label>Cor Primária Personalizada</Label>
-                        <Input type="color" {...register('settings.primaryColor')} className="w-16 h-10" />
-                        <Input {...register('settings.primaryColor')} placeholder="#3B82F6" />
-                      </div>
-                      <div>
-                        <Label>Cor Secundária Personalizada</Label>
-                        <Input type="color" {...register('settings.secondaryColor')} className="w-16 h-10" />
-                        <Input {...register('settings.secondaryColor')} placeholder="#6B7280" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader><CardTitle>Imagem de Fundo</CardTitle></CardHeader>
-                    <CardContent>
-                      <Label>URL da Imagem de Fundo</Label>
-                      <Input {...register('settings.backgroundImage')} placeholder="https://exemplo.com/background.jpg" />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader><CardTitle>Configurações de Exibição</CardTitle></CardHeader>
-                    <CardContent className="grid gap-4">
-                      {[
-                        { key: 'showSearch', label: 'Exibir Busca' },
-                        { key: 'showExpiration', label: 'Exibir Data de Expiração' },
-                        { key: 'showTime', label: 'Exibir Hora' },
-                        { key: 'showLogo', label: 'Exibir Logo' }
-                      ].map((setting) => (
-                        <div key={setting.key} className="flex items-center justify-between">
-                          <Label>{setting.label}</Label>
-                            <Controller
-                              control={control}
-                            name={`settings.${setting.key}` as any}
-                              render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
-                              )}
-                            />
-                        </div>
-                      ))}
-                      
-                      <div className="space-y-2">
-                        <Label>Idioma Padrão</Label>
-                        <Controller
-                          control={control}
-                          name="settings.defaultLanguage"
-                          render={({ field }) => (
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pt">Português</SelectItem>
-                                <SelectItem value="en">English</SelectItem>
-                                <SelectItem value="es">Español</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
             </Tabs>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Salvar Layout'}</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                Salvar Layout
+              </Button>
             </DialogFooter>
           </form>
         )}

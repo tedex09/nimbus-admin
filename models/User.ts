@@ -24,6 +24,7 @@ const UserSchema = new Schema<IUser>({
     unique: true,
     lowercase: true,
     trim: true,
+    index: true,
   },
   senha: {
     type: String,
@@ -34,19 +35,14 @@ const UserSchema = new Schema<IUser>({
     type: String,
     enum: ['admin', 'dono'],
     default: 'dono',
-    index: true,
   },
   ativo: {
     type: Boolean,
     default: true,
-    index: true,
   },
 }, {
   timestamps: true,
 });
-
-// Índices compostos
-UserSchema.index({ tipo: 1, ativo: 1 });
 
 // Hash password before saving
 UserSchema.pre('save', async function (next) {
@@ -67,26 +63,5 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 };
 
 const UserModel = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-/* 
-// Criação automática do admin padrão
-(async () => {
-  try {
-    // só cria se não existir nenhum admin
-    const adminExists = await UserModel.findOne({ tipo: 'admin' });
-    if (!adminExists) {
-      const defaultAdmin = new UserModel({
-        nome: 'Administrador',
-        email: 'admin@iptv.com',
-        senha: 'admin123', // será hasheada pelo pre-save
-        tipo: 'admin',
-        ativo: true,
-      });
-      await defaultAdmin.save();
-      console.log('✅ Admin padrão criado: admin@iptv.com / admin123');
-    }
-  } catch (err) {
-    console.error('Erro ao criar admin padrão:', err);
-  }
-})(); */
 
 export default UserModel;

@@ -12,7 +12,7 @@ export interface IMenuSection {
 export interface ILayoutColors {
   primary: string;
   secondary: string;
-  background: string;
+  background?: string;
 }
 
 export interface ILayoutSettings {
@@ -21,11 +21,7 @@ export interface ILayoutSettings {
   showTime: boolean;
   showLogo: boolean;
   defaultLanguage: string;
-  backgroundColor: string;
-  primaryColor: string;
-  secondaryColor: string;
-  backgroundImage?: string;
-  menuPosition: 'left' | 'right' | 'top' | 'bottom';
+  menuPosition: 'top' | 'left' | 'bottom';
 }
 
 export interface IServerLayout extends Document {
@@ -84,7 +80,6 @@ const LayoutColorsSchema = new Schema({
   },
   background: {
     type: String,
-    required: true,
     match: /^#[0-9A-F]{6}$/i,
     default: '#FFFFFF',
   },
@@ -112,33 +107,10 @@ const LayoutSettingsSchema = new Schema({
     enum: ['pt', 'en', 'es'],
     default: 'pt',
   },
-  backgroundColor: {
-    type: String,
-    required: true,
-    match: /^#[0-9A-F]{6}$/i,
-    default: '#FFFFFF',
-  },
-  primaryColor: {
-    type: String,
-    required: true,
-    match: /^#[0-9A-F]{6}$/i,
-    default: '#3B82F6',
-  },
-  secondaryColor: {
-    type: String,
-    required: true,
-    match: /^#[0-9A-F]{6}$/i,
-    default: '#6B7280',
-  },
-  backgroundImage: {
-    type: String,
-    match: /^https?:\/\/.+/,
-    default: '',
-  },
   menuPosition: {
     type: String,
-    enum: ['left', 'right', 'top', 'bottom'],
-    default: 'left',
+    enum: ['top', 'left', 'bottom'],
+    default: 'top',
   },
 });
 
@@ -148,6 +120,7 @@ const ServerLayoutSchema = new Schema<IServerLayout>({
     ref: 'Server',
     required: true,
     unique: true,
+    index: true,
   },
   colors: {
     type: LayoutColorsSchema,
@@ -229,11 +202,7 @@ ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, se
       showTime: true,
       showLogo: true,
       defaultLanguage: 'pt',
-      backgroundColor: '#FFFFFF',
-      primaryColor: '#3B82F6',
-      secondaryColor: '#6B7280',
-      backgroundImage: '',
-      menuPosition: 'left',
+      menuPosition: 'top',
     },
     isActive: true,
   });

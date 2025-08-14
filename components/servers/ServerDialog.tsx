@@ -316,7 +316,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center space-x-2">
-                          {selectedPlan.unlimited || selectedPlan.limiteListasAtivas === null ? (
+                          {selectedPlan.unlimited || selectedPlan.limiteListasAtivas === 0 ? (
                             <span className="text-green-700 font-medium">Listas Ilimitadas</span>
                           ) : (
                             <>

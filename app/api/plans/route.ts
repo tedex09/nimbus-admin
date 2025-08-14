@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { nome, limiteListasAtivas, tipoCobranca, valor, durabilidadeMeses } = body;
+    const { nome, unlimited, limiteListasAtivas, tipoCobranca, valor, durabilidadeMeses } = body;
 
     if (!nome || !tipoCobranca || valor === undefined || !durabilidadeMeses) {
       return NextResponse.json(
@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
 
     const plan = new Plan({
       nome,
-      limiteListasAtivas: limiteListasAtivas === '' ? null : limiteListasAtivas,
+      unlimited: unlimited || false,
+      limiteListasAtivas: unlimited ? 0 : (limiteListasAtivas || 0),
       tipoCobranca,
       valor,
       durabilidadeMeses,
