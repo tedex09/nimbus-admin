@@ -12,6 +12,7 @@ export interface IMenuSection {
 export interface ILayoutColors {
   primary: string;
   secondary: string;
+  background: string;
 }
 
 export interface ILayoutSettings {
@@ -20,6 +21,11 @@ export interface ILayoutSettings {
   showTime: boolean;
   showLogo: boolean;
   defaultLanguage: string;
+  backgroundColor: string;
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundImage?: string;
+  menuPosition: 'left' | 'right' | 'top' | 'bottom';
 }
 
 export interface IServerLayout extends Document {
@@ -76,6 +82,12 @@ const LayoutColorsSchema = new Schema({
     required: true,
     match: /^#[0-9A-F]{6}$/i,
   },
+  background: {
+    type: String,
+    required: true,
+    match: /^#[0-9A-F]{6}$/i,
+    default: '#FFFFFF',
+  },
 });
 
 const LayoutSettingsSchema = new Schema({
@@ -99,6 +111,34 @@ const LayoutSettingsSchema = new Schema({
     type: String,
     enum: ['pt', 'en', 'es'],
     default: 'pt',
+  },
+  backgroundColor: {
+    type: String,
+    required: true,
+    match: /^#[0-9A-F]{6}$/i,
+    default: '#FFFFFF',
+  },
+  primaryColor: {
+    type: String,
+    required: true,
+    match: /^#[0-9A-F]{6}$/i,
+    default: '#3B82F6',
+  },
+  secondaryColor: {
+    type: String,
+    required: true,
+    match: /^#[0-9A-F]{6}$/i,
+    default: '#6B7280',
+  },
+  backgroundImage: {
+    type: String,
+    match: /^https?:\/\/.+/,
+    default: '',
+  },
+  menuPosition: {
+    type: String,
+    enum: ['left', 'right', 'top', 'bottom'],
+    default: 'left',
   },
 });
 
@@ -139,14 +179,11 @@ const ServerLayoutSchema = new Schema<IServerLayout>({
   isActive: {
     type: Boolean,
     default: true,
+    index: true,
   },
 }, {
   timestamps: true,
 });
-
-// Indexes
-ServerLayoutSchema.index({ serverId: 1 });
-ServerLayoutSchema.index({ isActive: 1 });
 
 // Método para criar layout padrão
 ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, serverData: any) {
@@ -180,10 +217,11 @@ ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, se
   return new this({
     serverId,
     colors: {
-      primary: serverData.corPrimaria || '#3B82F6',
+      primary: '#3B82F6',
       secondary: '#6B7280',
+      background: '#FFFFFF',
     },
-    logoUrl: serverData.logoUrl || 'https://via.placeholder.com/200x100',
+    logoUrl: 'https://via.placeholder.com/200x100',
     menuSections: defaultMenuSections,
     settings: {
       showSearch: true,
@@ -191,6 +229,11 @@ ServerLayoutSchema.statics.createDefaultLayout = function(serverId: ObjectId, se
       showTime: true,
       showLogo: true,
       defaultLanguage: 'pt',
+      backgroundColor: '#FFFFFF',
+      primaryColor: '#3B82F6',
+      secondaryColor: '#6B7280',
+      backgroundImage: '',
+      menuPosition: 'left',
     },
     isActive: true,
   });

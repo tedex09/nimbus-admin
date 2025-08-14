@@ -29,9 +29,6 @@ const serverSchema = z.object({
     .max(100, 'Nome deve ter no máximo 100 caracteres'),
   dns: z.string()
     .url('DNS deve ser uma URL válida'),
-  logoUrl: z.string().url('Logo URL deve ser uma URL válida').optional().or(z.literal('')),
-  corPrimaria: z.string()
-    .regex(/^#[0-9A-F]{6}$/i, 'Cor deve estar no formato hexadecimal (#RRGGBB)'),
   donoId: z.string().optional(),
   planoId: z.string().min(1, 'Plano é obrigatório'),
   status: z.enum(['ativo', 'pendente', 'inativo', 'vencido']).optional(),
@@ -119,8 +116,6 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
       reset({
         nome: server.nome,
         dns: server.dns,
-        logoUrl: server.logoUrl || '',
-        corPrimaria: server.corPrimaria,
         donoId: server.donoId?._id || '',
         planoId: server.planoId?._id || '',
         status: server.status,
@@ -129,8 +124,6 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
       reset({
         nome: '',
         dns: '',
-        logoUrl: '',
-        corPrimaria: '#3B82F6',
         donoId: '',
         planoId: '',
         status: 'pendente',
@@ -266,72 +259,11 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
               )}
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <motion.div 
-                className="space-y-2"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Label htmlFor="logoUrl" className="text-sm font-semibold text-gray-700">
-                  Logo URL (opcional)
-                </Label>
-                <Input
-                  id="logoUrl"
-                  {...register('logoUrl')}
-                  placeholder="https://exemplo.com/logo.png"
-                  className="h-12 border-2 focus:border-blue-500 transition-colors"
-                />
-                {errors.logoUrl && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-red-600"
-                  >
-                    {errors.logoUrl.message}
-                  </motion.p>
-                )}
-              </motion.div>
-
-              <motion.div 
-                className="space-y-2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Label htmlFor="corPrimaria" className="text-sm font-semibold text-gray-700">
-                  Cor Primária
-                </Label>
-                <div className="flex space-x-3">
-                  <Input
-                    id="corPrimaria"
-                    type="color"
-                    {...register('corPrimaria')}
-                    className="w-16 h-12 p-1 rounded-lg border-2"
-                  />
-                  <Input
-                    {...register('corPrimaria')}
-                    placeholder="#3B82F6"
-                    className="flex-1 h-12 border-2 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                {errors.corPrimaria && (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-sm text-red-600"
-                  >
-                    {errors.corPrimaria.message}
-                  </motion.p>
-                )}
-              </motion.div>
-            </div>
-
             <motion.div 
               className="space-y-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.3 }}
             >
               <Label htmlFor="planoId" className="text-sm font-semibold text-gray-700">
                 Plano de Cobrança *
@@ -384,7 +316,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center space-x-2">
-                          {selectedPlan.limiteListasAtivas === null ? (
+                          {selectedPlan.unlimited || selectedPlan.limiteListasAtivas === null ? (
                             <span className="text-green-700 font-medium">Listas Ilimitadas</span>
                           ) : (
                             <>
@@ -428,7 +360,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                     className="space-y-2"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
+                    transition={{ delay: 0.4 }}
                   >
                     <Label htmlFor="status" className="text-sm font-semibold text-gray-700">
                       Status do Servidor
@@ -452,7 +384,7 @@ export function ServerDialog({ open, onOpenChange, server, onServerSaved }: Serv
                     className="space-y-2"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
+                    transition={{ delay: 0.5 }}
                   >
                     <Label htmlFor="donoId" className="text-sm font-semibold text-gray-700">
                       Dono do Servidor

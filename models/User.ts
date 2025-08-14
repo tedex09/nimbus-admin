@@ -34,14 +34,19 @@ const UserSchema = new Schema<IUser>({
     type: String,
     enum: ['admin', 'dono'],
     default: 'dono',
+    index: true,
   },
   ativo: {
     type: Boolean,
     default: true,
+    index: true,
   },
 }, {
   timestamps: true,
 });
+
+// Índices compostos
+UserSchema.index({ tipo: 1, ativo: 1 });
 
 // Hash password before saving
 UserSchema.pre('save', async function (next) {

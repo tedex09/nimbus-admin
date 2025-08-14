@@ -27,6 +27,7 @@ const MonthlyActiveListSchema = new Schema<IMonthlyActiveList>({
     type: String,
     required: true,
     match: /^\d{4}-\d{2}$/, // formato YYYY-MM
+    index: true,
   },
   dataPrimeiroUso: {
     type: Date,
@@ -35,6 +36,7 @@ const MonthlyActiveListSchema = new Schema<IMonthlyActiveList>({
   ultimoAcesso: {
     type: Date,
     required: true,
+    index: true,
   },
   userAgent: {
     type: String,
@@ -47,21 +49,21 @@ const MonthlyActiveListSchema = new Schema<IMonthlyActiveList>({
   ativo: {
     type: Boolean,
     default: true,
+    index: true,
   },
 }, {
   timestamps: true,
 });
 
-// Índice único para evitar duplicatas por mês
+// Índice único composto
 MonthlyActiveListSchema.index({ 
   serverCode: 1, 
   username: 1, 
   mesReferencia: 1 
 }, { unique: true });
 
-// Outros índices para performance
-MonthlyActiveListSchema.index({ mesReferencia: 1 });
-MonthlyActiveListSchema.index({ ultimoAcesso: 1 });
-MonthlyActiveListSchema.index({ ativo: 1 });
+// Índices compostos adicionais
+MonthlyActiveListSchema.index({ mesReferencia: 1, ativo: 1 });
+MonthlyActiveListSchema.index({ serverCode: 1, mesReferencia: 1, ativo: 1 });
 
 export default mongoose.models.MonthlyActiveList || mongoose.model<IMonthlyActiveList>('MonthlyActiveList', MonthlyActiveListSchema);

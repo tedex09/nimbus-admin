@@ -24,6 +24,7 @@ const layoutSchema = z.object({
   colors: z.object({
     primary: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
     secondary: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
+    background: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
   }),
   logoUrl: z.string().url('URL inválida'),
   backgroundImageUrl: z.string().url('URL inválida').optional().or(z.literal('')),
@@ -41,6 +42,11 @@ const layoutSchema = z.object({
     showTime: z.boolean(),
     showLogo: z.boolean(),
     defaultLanguage: z.enum(['pt', 'en', 'es']),
+    backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
+    primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
+    secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor inválida'),
+    backgroundImage: z.string().url('URL inválida').optional().or(z.literal('')),
+    menuPosition: z.enum(['left', 'right', 'top', 'bottom']),
   }),
 });
 
@@ -72,11 +78,22 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
   const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<LayoutFormData>({
     resolver: zodResolver(layoutSchema),
     defaultValues: {
-      colors: { primary: '#3B82F6', secondary: '#6B7280' },
+      colors: { primary: '#3B82F6', secondary: '#6B7280', background: '#FFFFFF' },
       logoUrl: '',
       backgroundImageUrl: '',
       menuSections: defaultMenuSections,
-      settings: { showSearch: true, showExpiration: true, showTime: true, showLogo: true, defaultLanguage: 'pt' },
+      settings: { 
+        showSearch: true, 
+        showExpiration: true, 
+        showTime: true, 
+        showLogo: true, 
+        defaultLanguage: 'pt',
+        backgroundColor: '#FFFFFF',
+        primaryColor: '#3B82F6',
+        secondaryColor: '#6B7280',
+        backgroundImage: '',
+        menuPosition: 'left',
+      },
     },
   });
 
@@ -158,16 +175,30 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
               <TabsContent value="colors">
                 <Card>
                   <CardHeader><CardTitle>Esquema de Cores</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label>Cor Primária</Label>
                       <Input type="color" {...register('colors.primary')} className="w-16 h-10" />
                       <Input {...register('colors.primary')} placeholder="#3B82F6" />
+                      {errors.colors?.primary && (
+                        <p className="text-sm text-red-600">{errors.colors.primary.message}</p>
+                      )}
                     </div>
                     <div>
                       <Label>Cor Secundária</Label>
                       <Input type="color" {...register('colors.secondary')} className="w-16 h-10" />
                       <Input {...register('colors.secondary')} placeholder="#6B7280" />
+                      {errors.colors?.secondary && (
+                        <p className="text-sm text-red-600">{errors.colors.secondary.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Cor de Fundo</Label>
+                      <Input type="color" {...register('colors.background')} className="w-16 h-10" />
+                      <Input {...register('colors.background')} placeholder="#FFFFFF" />
+                      {errors.colors?.background && (
+                        <p className="text-sm text-red-600">{errors.colors.background.message}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -177,11 +208,17 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
               <TabsContent value="branding">
                 <Card>
                   <CardHeader><CardTitle>Identidade Visual</CardTitle></CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <Label>URL do Logo</Label>
                     <Input {...register('logoUrl')} placeholder="https://exemplo.com/logo.png" />
+                    {errors.logoUrl && (
+                      <p className="text-sm text-red-600">{errors.logoUrl.message}</p>
+                    )}
                     <Label>Imagem de Fundo</Label>
                     <Input {...register('backgroundImageUrl')} placeholder="https://exemplo.com/bg.jpg" />
+                    {errors.backgroundImageUrl && (
+                      <p className="text-sm text-red-600">{errors.backgroundImageUrl.message}</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -190,65 +227,155 @@ export function LayoutEditor({ open, onOpenChange, serverId, serverName }: Layou
               <TabsContent value="menu">
                 <Card>
                   <CardHeader><CardTitle>Seções do Menu</CardTitle></CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <AnimatePresence>
                       {fields.map((field, idx) => {
                         const Icon = getIconComponent(field.icon);
                         return (
-                          <motion.div key={field.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3">
-                            <button type="button" onClick={() => moveSection(idx, idx - 1)} disabled={idx === 0}>↑</button>
-                            <button type="button" onClick={() => moveSection(idx, idx + 1)} disabled={idx === fields.length - 1}>↓</button>
+                          <motion.div 
+                            key={field.id} 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            className="flex items-center gap-3 p-4 border rounded-lg"
+                          >
+                            <div className="flex flex-col gap-1">
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => moveSection(idx, idx - 1)} 
+                                disabled={idx === 0}
+                              >
+                                ↑
+                              </Button>
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => moveSection(idx, idx + 1)} 
+                                disabled={idx === fields.length - 1}
+                              >
+                                ↓
+                              </Button>
+                            </div>
                             <Icon className="h-4 w-4" />
-                            <Input {...register(`menuSections.${idx}.name`)} />
-                            <Controller
-                              control={control}
-                              name={`menuSections.${idx}.enabled`}
-                              render={({ field }) => (
-                                <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
-                              )}
-                            />
+                            <div className="flex-1">
+                              <Label>Nome da Seção</Label>
+                              <Input {...register(`menuSections.${idx}.name`)} />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Label>Ativo</Label>
+                              <Controller
+                                control={control}
+                                name={`menuSections.${idx}.enabled`}
+                                render={({ field }) => (
+                                  <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
+                                )}
+                              />
+                            </div>
                           </motion.div>
                         );
                       })}
                     </AnimatePresence>
+                    
+                    <div className="space-y-4 mt-6">
+                      <Label>Posição do Menu</Label>
+                      <Controller
+                        control={control}
+                        name="settings.menuPosition"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="left">Esquerda</SelectItem>
+                              <SelectItem value="right">Direita</SelectItem>
+                              <SelectItem value="top">Superior</SelectItem>
+                              <SelectItem value="bottom">Inferior</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
               {/* CONFIGURAÇÕES */}
               <TabsContent value="settings">
-                <Card>
-                  <CardHeader><CardTitle>Configurações</CardTitle></CardHeader>
-                  <CardContent className="grid gap-4">
-                    {['showSearch', 'showExpiration', 'showTime', 'showLogo'].map((setting) => (
-                      <div key={setting} className="flex justify-between">
-                        <Label>{setting}</Label>
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader><CardTitle>Cores Personalizadas</CardTitle></CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Cor de Fundo Personalizada</Label>
+                        <Input type="color" {...register('settings.backgroundColor')} className="w-16 h-10" />
+                        <Input {...register('settings.backgroundColor')} placeholder="#FFFFFF" />
+                      </div>
+                      <div>
+                        <Label>Cor Primária Personalizada</Label>
+                        <Input type="color" {...register('settings.primaryColor')} className="w-16 h-10" />
+                        <Input {...register('settings.primaryColor')} placeholder="#3B82F6" />
+                      </div>
+                      <div>
+                        <Label>Cor Secundária Personalizada</Label>
+                        <Input type="color" {...register('settings.secondaryColor')} className="w-16 h-10" />
+                        <Input {...register('settings.secondaryColor')} placeholder="#6B7280" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader><CardTitle>Imagem de Fundo</CardTitle></CardHeader>
+                    <CardContent>
+                      <Label>URL da Imagem de Fundo</Label>
+                      <Input {...register('settings.backgroundImage')} placeholder="https://exemplo.com/background.jpg" />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader><CardTitle>Configurações de Exibição</CardTitle></CardHeader>
+                    <CardContent className="grid gap-4">
+                      {[
+                        { key: 'showSearch', label: 'Exibir Busca' },
+                        { key: 'showExpiration', label: 'Exibir Data de Expiração' },
+                        { key: 'showTime', label: 'Exibir Hora' },
+                        { key: 'showLogo', label: 'Exibir Logo' }
+                      ].map((setting) => (
+                        <div key={setting.key} className="flex items-center justify-between">
+                          <Label>{setting.label}</Label>
+                            <Controller
+                              control={control}
+                            name={`settings.${setting.key}` as any}
+                              render={({ field }) => (
+                                <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
+                              )}
+                            />
+                        </div>
+                      ))}
+                      
+                      <div className="space-y-2">
+                        <Label>Idioma Padrão</Label>
                         <Controller
                           control={control}
-                          name={`settings.${setting}` as any}
+                          name="settings.defaultLanguage"
                           render={({ field }) => (
-                            <Switch checked={field.value} onCheckedChange={(val) => field.onChange(val)} />
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pt">Português</SelectItem>
+                                <SelectItem value="en">English</SelectItem>
+                                <SelectItem value="es">Español</SelectItem>
+                              </SelectContent>
+                            </Select>
                           )}
                         />
                       </div>
-                    ))}
-                    <Label>Idioma Padrão</Label>
-                    <Controller
-                      control={control}
-                      name="settings.defaultLanguage"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pt">Português</SelectItem>
-                            <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="es">Español</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
 

@@ -140,9 +140,17 @@ export async function POST(
 
     // Validar cores
     const colorRegex = /^#[0-9A-F]{6}$/i;
-    if (!colorRegex.test(colors.primary) || !colorRegex.test(colors.secondary)) {
+    if (!colorRegex.test(colors.primary) || !colorRegex.test(colors.secondary) || !colorRegex.test(colors.background)) {
       return NextResponse.json(
         { error: 'Cores devem estar no formato hexadecimal (#RRGGBB)' },
+        { status: 400 }
+      );
+    }
+
+    // Validar cores das configurações
+    if (!colorRegex.test(settings.backgroundColor) || !colorRegex.test(settings.primaryColor) || !colorRegex.test(settings.secondaryColor)) {
+      return NextResponse.json(
+        { error: 'Cores das configurações devem estar no formato hexadecimal (#RRGGBB)' },
         { status: 400 }
       );
     }
@@ -173,7 +181,7 @@ export async function POST(
       layout.logoUrl = logoUrl;
       layout.backgroundImageUrl = backgroundImageUrl;
       layout.menuSections = menuSections;
-      layout.settings = { ...layout.settings, ...settings };
+      layout.settings = settings;
     } else {
       // Criar novo layout
       layout = new ServerLayout({
@@ -182,14 +190,7 @@ export async function POST(
         logoUrl,
         backgroundImageUrl,
         menuSections,
-        settings: {
-          showSearch: true,
-          showExpiration: true,
-          showTime: true,
-          showLogo: true,
-          defaultLanguage: 'pt',
-          ...settings,
-        },
+        settings,
         isActive: true,
       });
     }

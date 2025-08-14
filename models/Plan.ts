@@ -3,6 +3,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IPlan extends Document {
   nome: string;
   limiteListasAtivas: number;
+  unlimited: boolean;
+  unlimited: boolean;
   tipoCobranca: 'fixo' | 'por_lista';
   valor: number;
   durabilidadeMeses: number; // 1, 2, 3, etc.
@@ -17,11 +19,16 @@ const PlanSchema = new Schema<IPlan>({
     required: true,
     trim: true,
     maxlength: 100,
+    index: true,
   },
   limiteListasAtivas: {
     type: Number,
-    default: 0, // 0 = ilimitado
+    default: 0,
     min: 0,
+  },
+  unlimited: {
+    type: Boolean,
+    default: false,
   },
   tipoCobranca: {
     type: String,
@@ -43,13 +50,21 @@ const PlanSchema = new Schema<IPlan>({
   ativo: {
     type: Boolean,
     default: true,
+    index: true,
   },
 }, {
   timestamps: true,
 });
 
-// Indexes
-PlanSchema.index({ nome: 1 });
-PlanSchema.index({ ativo: 1 });
+// Middleware para validar limite quando unlimited for false
+PlanSchema.pre('save', function(next) {
+  if (!this.unlimited && this.tipoCobranca === 'por_lista' && !this.limiteListasAtivas) {
+    return next(new Error('Limite de listas ativas é obrigatório quando não for ilimitado'));
+  }
+  if (this.unlimited) {
+    this.limiteListasAtivas = null;
+  }
+  next();
+});
 
 export default mongoose.models.Plan || mongoose.model<IPlan>('Plan', PlanSchema);

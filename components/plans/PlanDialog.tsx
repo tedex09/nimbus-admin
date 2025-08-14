@@ -25,6 +25,7 @@ const planSchema = z.object({
     .min(3, 'Nome deve ter no mínimo 3 caracteres')
     .max(100, 'Nome deve ter no máximo 100 caracteres'),
   limiteListasAtivas: z.string().optional(),
+  unlimited: z.boolean().default(false),
   tipoCobranca: z.enum(['fixo', 'por_lista']),
   valor: z.number()
     .min(0, 'Valor deve ser maior ou igual a zero'),
@@ -61,12 +62,14 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
   const tipoCobranca = watch('tipoCobranca');
   const ativo = watch('ativo');
   const durabilidadeMeses = watch('durabilidadeMeses');
+  const unlimited = watch('unlimited');
 
   useEffect(() => {
     if (plan) {
       reset({
         nome: plan.nome,
         limiteListasAtivas: plan.limiteListasAtivas?.toString() || '',
+        unlimited: plan.unlimited || false,
         tipoCobranca: plan.tipoCobranca,
         valor: plan.valor,
         durabilidadeMeses: plan.durabilidadeMeses || 1,
@@ -76,6 +79,7 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
       reset({
         nome: '',
         limiteListasAtivas: '',
+        unlimited: false,
         tipoCobranca: 'fixo',
         valor: 0,
         durabilidadeMeses: 1,
@@ -90,7 +94,7 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
     try {
       const submitData = {
         ...data,
-        limiteListasAtivas: data.limiteListasAtivas === '' ? null : parseInt(data.limiteListasAtivas!),
+        limiteListasAtivas: data.unlimited || data.limiteListasAtivas === '' ? null : parseInt(data.limiteListasAtivas!),
       };
 
       const url = isEditing ? `/api/plans/${plan._id}` : '/api/plans';
@@ -180,22 +184,32 @@ export function PlanDialog({ open, onOpenChange, plan, onPlanSaved }: PlanDialog
           </div>
 
           {tipoCobranca === 'por_lista' && (
-            <div className="space-y-2">
-              <Label htmlFor="limiteListasAtivas">Limite de Listas Ativas</Label>
-              <Input
-                id="limiteListasAtivas"
-                type="number"
-                {...register('limiteListasAtivas')}
-                placeholder="Deixe vazio para ilimitado"
-                min="0"
-              />
-              <p className="text-xs text-gray-500">
-                Deixe vazio para permitir listas ilimitadas
-              </p>
-              {errors.limiteListasAtivas && (
-                <p className="text-sm text-red-600">{errors.limiteListasAtivas.message}</p>
+            <>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="unlimited"
+                  checked={unlimited}
+                  onCheckedChange={(checked) => setValue('unlimited', checked)}
+                />
+                <Label htmlFor="unlimited">Listas ilimitadas</Label>
+              </div>
+
+              {!unlimited && (
+                <div className="space-y-2">
+                  <Label htmlFor="limiteListasAtivas">Limite de Listas Ativas</Label>
+                  <Input
+                    id="limiteListasAtivas"
+                    type="number"
+                    {...register('limiteListasAtivas')}
+                    placeholder="Digite o limite de listas"
+                    min="1"
+                  />
+                  {errors.limiteListasAtivas && (
+                    <p className="text-sm text-red-600">{errors.limiteListasAtivas.message}</p>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
 
           <div className="space-y-2">
