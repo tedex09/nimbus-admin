@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../lib/auth';
 import connectDB from '../../../../lib/mongodb';
 import Plan from '../../../../models/Plan';
+import Server from '../../../../models/Server';
 
 export async function PUT(
   req: NextRequest,
@@ -34,6 +35,10 @@ export async function PUT(
 
     await plan.save();
 
+    // Atualizar todos os servidores que usam este plano
+    // Não é necessário fazer nada especial, pois os servidores já referenciam o plano
+    // e as regras são aplicadas dinamicamente através da referência
+
     return NextResponse.json({ plan });
   } catch (error) {
     console.error('Update plan error:', error);
@@ -52,6 +57,15 @@ export async function DELETE(
     }
 
     await connectDB();
+
+    // Verificar se existem servidores usando este plano
+    const serversUsingPlan = await Server.countDocuments({ planoId: params.id });
+    if (serversUsingPlan > 0) {
+      return NextResponse.json(
+        { error: `Não é possível excluir este plano pois ${serversUsingPlan} servidor(es) ainda o utilizam` },
+        { status: 400 }
+      );
+    }
 
     const plan = await Plan.findByIdAndDelete(params.id);
     if (!plan) {

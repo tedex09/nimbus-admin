@@ -89,18 +89,11 @@ export default function AdminPlansPage() {
   };
 
   const handleDelete = async (planId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este plano?')) {
-      return;
-    }
+    if (!confirm('Tem certeza que deseja excluir este plano?')) return;
 
     try {
-      const response = await fetch(`/api/plans/${planId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao excluir plano');
-      }
+      const response = await fetch(`/api/plans/${planId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Erro ao excluir plano');
 
       toast.success('Plano excluído com sucesso');
       fetchPlans();
@@ -116,9 +109,7 @@ export default function AdminPlansPage() {
     fetchPlans();
   };
 
-  if (session?.user?.role !== 'admin') {
-    return null;
-  }
+  if (session?.user?.role !== 'admin') return null;
 
   if (loading) {
     return (
@@ -191,14 +182,7 @@ export default function AdminPlansPage() {
                     <TableRow key={plan._id}>
                       <TableCell className="font-medium">{plan.nome}</TableCell>
                       <TableCell>
-                        {plan.limiteListasAtivas === null ? (
-                          <div className="flex items-center">
-                            <Infinity className="h-4 w-4 mr-1 text-green-600" />
-                            <span className="text-green-600">Ilimitado</span>
-                          </div>
-                        ) : (
-                          plan.limiteListasAtivas
-                        )}
+                        <span>{plan.limiteListasAtivas ? plan.limiteListasAtivas : 'Ilimitado'}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={plan.tipoCobranca === 'fixo' ? 'default' : 'secondary'}>
@@ -206,7 +190,7 @@ export default function AdminPlansPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        R$ {plan.valor.toFixed(2).replace('.', ',')}
+                        <span>R$ {plan.valor.toFixed(2).replace('.', ',')}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={plan.ativo ? 'default' : 'secondary'}>

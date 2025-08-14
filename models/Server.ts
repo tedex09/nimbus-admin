@@ -8,7 +8,6 @@ export interface IServer extends Document {
   corPrimaria: string;
   donoId: ObjectId;
   planoId?: ObjectId;
-  limiteMensal?: number | null; // null = ilimitado
   status: 'ativo' | 'pendente' | 'inativo';
   createdAt: Date;
   updatedAt: Date;
@@ -54,12 +53,7 @@ const ServerSchema = new Schema<IServer>({
   planoId: {
     type: Schema.Types.ObjectId,
     ref: 'Plan',
-    default: null,
-  },
-  limiteMensal: {
-    type: Number,
-    default: null, // null = ilimitado
-    min: 0,
+    required: true,
   },
   status: {
     type: String,

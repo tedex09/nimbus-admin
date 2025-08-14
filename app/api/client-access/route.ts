@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         await monthlyList.save();
       } else {
         // Verificar limite mensal antes de criar novo registro
-        const limiteMensal = server.planoId?.limiteListasAtivas || server.limiteMensal;
+        const limiteMensal = server.planoId?.limiteListasAtivas;
         
         if (limiteMensal !== null) {
           const listasAtivasNoMes = await MonthlyActiveList.countDocuments({

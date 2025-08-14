@@ -48,7 +48,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const { codigo, nome, dns, logoUrl, corPrimaria, status, donoId, planoId, limiteMensal } = body;
+    const { codigo, nome, dns, logoUrl, corPrimaria, status, donoId, planoId } = body;
 
     await connectDB();
 
@@ -79,7 +79,7 @@ export async function PUT(
     }
 
     // Verificar se o plano existe (se fornecido)
-    if (planoId && planoId !== server.planoId?.toString()) {
+    if (planoId) {
       const plano = await Plan.findById(planoId);
       if (!plano) {
         return NextResponse.json({ error: 'Plano não encontrado' }, { status: 400 });
@@ -96,12 +96,12 @@ export async function PUT(
       if (codigo) server.codigo = codigo;
       if (status) server.status = status;
       if (donoId) server.donoId = donoId;
-      if (planoId !== undefined) server.planoId = planoId || null;
+      if (planoId) server.planoId = planoId;
     }
     
-    // Limite mensal pode ser alterado por admin ou pelo próprio dono
-    if (limiteMensal !== undefined) {
-      server.limiteMensal = limiteMensal === '' ? null : limiteMensal;
+    // Plano pode ser alterado pelo próprio dono também
+    if (planoId && session.user.role === 'dono') {
+      server.planoId = planoId;
     }
 
     await server.save();

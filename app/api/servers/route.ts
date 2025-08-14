@@ -73,7 +73,12 @@ export async function POST(req: NextRequest) {
     const codigo = await generateUniqueServerCode();
 
     // Verificar se o plano existe (se fornecido)
-    if (planoId) {
+    if (!planoId) {
+      return NextResponse.json({ error: 'Plano é obrigatório' }, { status: 400 });
+    }
+    
+    const plano = await Plan.findById(planoId);
+    if (!plano) {
       const plano = await Plan.findById(planoId);
       if (!plano) {
         return NextResponse.json({ error: 'Plano não encontrado' }, { status: 400 });
@@ -87,8 +92,7 @@ export async function POST(req: NextRequest) {
       logoUrl: logoUrl || '',
       corPrimaria: corPrimaria || '#3B82F6',
       donoId: finalDonoId,
-      planoId: planoId || null,
-      limiteMensal: limiteMensal === '' ? null : limiteMensal,
+      planoId: planoId,
       status: session.user.role === 'admin' ? 'ativo' : 'pendente',
     });
 

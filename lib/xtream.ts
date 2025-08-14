@@ -14,7 +14,7 @@ export class XtreamService {
 
   private async getServerConfig(serverCode: string) {
     await connectDB();
-    const server = await Server.findOne({ codigo: serverCode.toUpperCase(), ativo: true });
+    const server = await Server.findOne({ codigo: serverCode.toUpperCase(), status: "ativo" });
     
     if (!server) {
       throw new Error('Servidor não encontrado ou inativo');
