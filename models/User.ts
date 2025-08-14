@@ -62,7 +62,7 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 };
 
 const UserModel = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-
+/* 
 // Criação automática do admin padrão
 (async () => {
   try {
@@ -82,6 +82,6 @@ const UserModel = mongoose.models.User || mongoose.model<IUser>('User', UserSche
   } catch (err) {
     console.error('Erro ao criar admin padrão:', err);
   }
-})();
+})(); */
 
 export default UserModel;

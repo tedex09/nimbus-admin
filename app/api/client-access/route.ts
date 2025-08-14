@@ -97,11 +97,16 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({ 
-        success: true, 
-        message: 'Acesso registrado com sucesso',
-        userInfo,
-        monthlyList
-      });
+  success: true, 
+  message: 'Acesso registrado com sucesso',
+  userInfo,
+  monthlyList
+}, {
+  status: 200,
+  headers: {
+    'Access-Control-Allow-Origin': '*'
+  }
+});
 
     } catch (xtreamError) {
       return NextResponse.json(
@@ -117,4 +122,15 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }

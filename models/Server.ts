@@ -76,11 +76,11 @@ const ServerSchema = new Schema<IServer>({
 });
 
 // Indexes
-ServerSchema.index({ codigo: 1 });
+/* ServerSchema.index({ codigo: 1 });
 ServerSchema.index({ donoId: 1 });
 ServerSchema.index({ status: 1 });
 ServerSchema.index({ planoId: 1 });
-ServerSchema.index({ dataVencimento: 1 });
+ServerSchema.index({ dataVencimento: 1 }); */
 
 // Método para verificar se está vencido
 ServerSchema.methods.isExpired = function(): boolean {

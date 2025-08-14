@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPlan extends Document {
   nome: string;
-  limiteListasAtivas: number | null; // null = ilimitado
+  limiteListasAtivas: number;
   tipoCobranca: 'fixo' | 'por_lista';
   valor: number;
   durabilidadeMeses: number; // 1, 2, 3, etc.
@@ -20,7 +20,7 @@ const PlanSchema = new Schema<IPlan>({
   },
   limiteListasAtivas: {
     type: Number,
-    default: null, // null = ilimitado
+    default: 0, // 0 = ilimitado
     min: 0,
   },
   tipoCobranca: {
