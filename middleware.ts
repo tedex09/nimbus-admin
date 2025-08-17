@@ -59,6 +59,7 @@ export const config = {
     '/api/active-lists/:path*',
     '/api/dashboard-stats/:path*',
     '/api/users/:path*',
-    '/api/layout/[serverId]/:path*'
+    '/api/layout/[serverId]/:path*',
+    '/api/device-code/cleanup/:path*'
   ],
 };
