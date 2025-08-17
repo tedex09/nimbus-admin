@@ -99,16 +99,16 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({ 
-  success: true, 
-  message: 'Acesso registrado com sucesso',
-  userInfo,
-  monthlyList
-}, {
-  status: 200,
-  headers: {
-    'Access-Control-Allow-Origin': '*'
-  }
-});
+        success: true, 
+        message: 'Acesso registrado com sucesso',
+        userInfo,
+        monthlyList
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
 
     } catch (xtreamError) {
       return NextResponse.json(

@@ -1,51 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../lib/auth';
-import connectDB from '../../../lib/mongodb';
-import ServerLayout from '../../../models/ServerLayout';
-import Server from '../../../models/Server';
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "../../../lib/mongodb";
+import ServerLayout from "../../../models/ServerLayout";
+import Server from "../../../models/Server";
 
-// Endpoint para buscar layouts por código do servidor (para clientes IPTV)
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const serverCode = searchParams.get('server_code');
+    const serverCode = searchParams.get("server_code");
 
     if (!serverCode) {
-      return NextResponse.json(
-        { error: 'Código do servidor é obrigatório' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Código do servidor é obrigatório" }, { status: 400, headers: corsHeaders });
     }
 
     await connectDB();
 
-    // Buscar servidor pelo código
-    const server = await Server.findOne({ 
+    const server = await Server.findOne({
       codigo: serverCode.toUpperCase(),
-      status: 'ativo' 
+      status: "ativo",
     });
 
     if (!server) {
-      return NextResponse.json(
-        { error: 'Servidor não encontrado ou inativo' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Servidor não encontrado ou inativo" }, { status: 404, headers: corsHeaders });
     }
 
-    // Buscar layout do servidor
-    let layout = await ServerLayout.findOne({ 
-      serverId: server._id, 
-      isActive: true 
+    let layout = await ServerLayout.findOne({
+      serverId: server._id,
+      isActive: true,
     });
 
-    // Se não existir layout, criar um padrão
     if (!layout) {
       layout = ServerLayout.createDefaultLayout(server._id, server);
       await layout.save();
     }
 
-    // Resposta otimizada para clientes
     const layoutResponse = {
       serverCode: server.codigo,
       serverName: server.nome,
@@ -53,9 +46,9 @@ export async function GET(req: NextRequest) {
       logoUrl: layout.logoUrl,
       backgroundImageUrl: layout.backgroundImageUrl,
       menuSections: layout.menuSections
-        .filter(section => section.enabled)
+        .filter((section) => section.enabled)
         .sort((a, b) => a.order - b.order)
-        .map(section => ({
+        .map((section) => ({
           id: section.id,
           name: section.name,
           icon: section.icon,
@@ -66,12 +59,14 @@ export async function GET(req: NextRequest) {
       version: layout.updatedAt.getTime(),
     };
 
-    return NextResponse.json(layoutResponse);
+    return NextResponse.json(layoutResponse, { headers: corsHeaders });
   } catch (error) {
-    console.error('Get layout by server code error:', error);
-    return NextResponse.json(
-      { error: 'Erro interno do servidor' },
-      { status: 500 }
-    );
+    console.error("Get layout by server code error:", error);
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500, headers: corsHeaders });
   }
+}
+
+// Preflight
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
 }
