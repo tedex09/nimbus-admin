@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
     if (deviceCode.status === 'authenticated') {
       response.serverCode = deviceCode.serverCode;
       response.username = deviceCode.username;
+      response.password = deviceCode.password;
       response.userInfo = deviceCode.userInfo;
       response.authenticatedAt = deviceCode.authenticatedAt;
     }
